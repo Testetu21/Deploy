@@ -1,0 +1,19 @@
+.input {
+    background-color: var(--bg);
+    color: var(--on-bg);
+    border-radius: 12px;
+    width: 100%;
+    border: 1px solid var(--highlight);
+    padding-inline: 16px;
+    padding-block: 12px;
+    height: 40px;
+    font-size: 16px;
+}
+
+.input:disabled {
+    cursor: not-allowed;
+    opacity: 60%;
+}
+.input:focus {
+    outline: none;
+}

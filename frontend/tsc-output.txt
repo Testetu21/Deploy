@@ -1,0 +1,71 @@
+﻿src/pages/clientes/Clientes.tsx(26,7): error TS6133: 'IconDown' is declared but its value is never read.
+src/pages/clientes/Clientes.tsx(136,12): error TS6133: 'exportCSV' is declared but its value is never read.
+src/pages/dashboard/index.tsx(9,7): error TS6133: 'today' is declared but its value is never read.
+src/pages/dashboard/index.tsx(15,7): error TS6133: 'capitalize' is declared but its value is never read.
+src/pages/despesas/Despesas.tsx(147,12): error TS6133: 'exportCSV' is declared but its value is never read.
+src/pages/FluxoCaixa/FluxoCaixa.tsx(4,53): error TS6133: 'IconDown' is declared but its value is never read.
+src/pages/FluxoCaixa/FluxoCaixa.tsx(149,12): error TS6133: 'exportCSV' is declared but its value is never read.
+src/pages/FluxoCaixa/FluxoCaixaForm.tsx(27,11): error TS2339: Property 'id_funcionario' does not exist on type '{ id: number; nivel: number; tipo: string; }'.
+src/pages/FluxoCaixa/FluxoCaixaForm.tsx(27,40): error TS2339: Property 'id_funcionario' does not exist on type '{ id: number; nivel: number; tipo: string; }'.
+src/pages/fornecedores/fornecedores.tsx(23,7): error TS6133: 'IconDown' is declared but its value is never read.
+src/pages/fornecedores/fornecedores.tsx(132,12): error TS6133: 'exportCSV' is declared but its value is never read.
+src/pages/funcionarios/funcionarios.tsx(26,7): error TS6133: 'IconDown' is declared but its value is never read.
+src/pages/funcionarios/funcionarios.tsx(138,12): error TS6133: 'exportCSV' is declared but its value is never read.
+src/pages/orcamentos/Orcamento.tsx(54,7): error TS6133: 'IconDown' is declared but its value is never read.
+src/pages/orcamentos/Orcamento.tsx(210,12): error TS6133: 'exportCSV' is declared but its value is never read.
+src/pages/OrdemServico/OrdemServico.tsx(4,52): error TS6133: 'IconDown' is declared but its value is never read.
+src/pages/OrdemServico/OrdemServico.tsx(139,12): error TS6133: 'exportCSV' is declared but its value is never read.
+src/pages/Pagamentos/Pagamentos.tsx(4,53): error TS6133: 'IconDown' is declared but its value is never read.
+src/pages/Pagamentos/Pagamentos.tsx(247,12): error TS6133: 'exportCSV' is declared but its value is never read.
+src/pages/produtos/Produtos.tsx(41,7): error TS6133: 'IconDown' is declared but its value is never read.
+src/pages/produtos/Produtos.tsx(160,12): error TS6133: 'exportCSV' is declared but its value is never read.
+src/pages/usuarios/Usuarios.tsx(4,10): error TS6133: 'IconAlert' is declared but its value is never read.
+src/pages/usuarios/Usuarios.tsx(50,9): error TS6133: 'initials' is declared but its value is never read.
+src/pages/vendas/VendasForm.tsx(22,54): error TS2339: Property 'id_funcionario' does not exist on type '{ id: number; nivel: number; tipo: string; }'.
+src/pages/vendas/VendasForm.tsx(22,83): error TS2339: Property 'id_funcionario' does not exist on type '{ id: number; nivel: number; tipo: string; }'.
+src/routes/caixa.tsx(1,33): error TS2307: Cannot find module '@tanstack/react-router' or its corresponding type declarations.
+src/routes/caixa.tsx(2,28): error TS2307: Cannot find module '@/components/page-header' or its corresponding type declarations.
+src/routes/caixa.tsx(3,26): error TS2307: Cannot find module '@/components/stat-card' or its corresponding type declarations.
+src/routes/caixa.tsx(4,62): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/routes/caixa.tsx(7,8): error TS2307: Cannot find module 'recharts' or its corresponding type declarations.
+src/routes/caixa.tsx(38,119): error TS7006: Parameter 'v' implicitly has an 'any' type.
+src/routes/clientes.tsx(1,33): error TS2307: Cannot find module '@tanstack/react-router' or its corresponding type declarations.
+src/routes/clientes.tsx(2,26): error TS2307: Cannot find module '@/components/list-page' or its corresponding type declarations.
+src/routes/despesas.tsx(1,33): error TS2307: Cannot find module '@tanstack/react-router' or its corresponding type declarations.
+src/routes/despesas.tsx(2,39): error TS2307: Cannot find module '@/components/list-page' or its corresponding type declarations.
+src/routes/despesas.tsx(23,52): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/routes/fornecedores.tsx(1,33): error TS2307: Cannot find module '@tanstack/react-router' or its corresponding type declarations.
+src/routes/fornecedores.tsx(2,26): error TS2307: Cannot find module '@/components/list-page' or its corresponding type declarations.
+src/routes/funcionarios.tsx(1,33): error TS2307: Cannot find module '@tanstack/react-router' or its corresponding type declarations.
+src/routes/funcionarios.tsx(2,39): error TS2307: Cannot find module '@/components/list-page' or its corresponding type declarations.
+src/routes/funcionarios.tsx(23,52): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/routes/index.tsx(1,33): error TS2307: Cannot find module '@tanstack/react-router' or its corresponding type declarations.
+src/routes/index.tsx(2,28): error TS2307: Cannot find module '@/components/page-header' or its corresponding type declarations.
+src/routes/index.tsx(3,26): error TS2307: Cannot find module '@/components/stat-card' or its corresponding type declarations.
+src/routes/index.tsx(7,8): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/routes/index.tsx(10,8): error TS2307: Cannot find module 'recharts' or its corresponding type declarations.
+src/routes/index.tsx(107,121): error TS7006: Parameter 'v' implicitly has an 'any' type.
+src/routes/loja.tsx(1,33): error TS2307: Cannot find module '@tanstack/react-router' or its corresponding type declarations.
+src/routes/loja.tsx(2,28): error TS2307: Cannot find module '@/components/page-header' or its corresponding type declarations.
+src/routes/loja.tsx(3,30): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/routes/movimentacoes.tsx(1,33): error TS2307: Cannot find module '@tanstack/react-router' or its corresponding type declarations.
+src/routes/movimentacoes.tsx(2,26): error TS2307: Cannot find module '@/components/list-page' or its corresponding type declarations.
+src/routes/movimentacoes.tsx(22,50): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/routes/orcamentos.tsx(1,33): error TS2307: Cannot find module '@tanstack/react-router' or its corresponding type declarations.
+src/routes/orcamentos.tsx(2,39): error TS2307: Cannot find module '@/components/list-page' or its corresponding type declarations.
+src/routes/orcamentos.tsx(23,52): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/routes/ordens.tsx(1,33): error TS2307: Cannot find module '@tanstack/react-router' or its corresponding type declarations.
+src/routes/ordens.tsx(2,39): error TS2307: Cannot find module '@/components/list-page' or its corresponding type declarations.
+src/routes/ordens.tsx(23,52): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/routes/pagamentos.tsx(1,33): error TS2307: Cannot find module '@tanstack/react-router' or its corresponding type declarations.
+src/routes/pagamentos.tsx(2,39): error TS2307: Cannot find module '@/components/list-page' or its corresponding type declarations.
+src/routes/pagamentos.tsx(24,52): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/routes/produtos.tsx(1,33): error TS2307: Cannot find module '@tanstack/react-router' or its corresponding type declarations.
+src/routes/produtos.tsx(2,39): error TS2307: Cannot find module '@/components/list-page' or its corresponding type declarations.
+src/routes/produtos.tsx(25,52): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/routes/usuarios.tsx(1,33): error TS2307: Cannot find module '@tanstack/react-router' or its corresponding type declarations.
+src/routes/usuarios.tsx(2,39): error TS2307: Cannot find module '@/components/list-page' or its corresponding type declarations.
+src/routes/usuarios.tsx(23,52): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/routes/vendas.tsx(1,33): error TS2307: Cannot find module '@tanstack/react-router' or its corresponding type declarations.
+src/routes/vendas.tsx(2,39): error TS2307: Cannot find module '@/components/list-page' or its corresponding type declarations.
+src/routes/vendas.tsx(24,52): error TS7006: Parameter 'r' implicitly has an 'any' type.

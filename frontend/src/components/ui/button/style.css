@@ -1,0 +1,29 @@
+.button {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 600;
+  transition: 0.3s ease;
+  padding-inline: 20px;
+  height: 36px;
+  border: none;
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 60%;
+  }
+}
+
+.button__primary {
+  background-color: var(--primary);
+  color: var(--on-primary); 
+}
+.button__secondary {
+  background-color: var(--secondary);
+  color: var(--on-secondary);
+}
+.button__warning {
+  background-color: var(--warning);
+  color: var(--on-warning);
+}

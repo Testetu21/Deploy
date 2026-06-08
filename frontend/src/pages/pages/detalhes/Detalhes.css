@@ -1,0 +1,152 @@
+@import "../../styles/modern-admin.css";
+
+.detalhes-wrapper {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.detalhes-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top right, rgba(255, 209, 0, 0.08), transparent 28%),
+    linear-gradient(180deg, #f7f8fc 0%, #f2f5fa 100%);
+}
+
+.detalhes-content {
+  padding: 24px 32px 34px;
+}
+
+.detalhes-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+  margin-bottom: 16px;
+}
+
+.detalhes-hero-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(255, 209, 0, 0.2), rgba(255, 209, 0, 0.05));
+  color: #b45309;
+  border: 1px solid rgba(255, 209, 0, 0.35);
+}
+
+.detalhes-hero-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.detalhes-hero-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.detalhes-hero-meta {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.detalhes-card {
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+  padding: 20px 22px;
+}
+
+.detalhes-row {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.detalhes-row:last-child {
+  border-bottom: none;
+}
+
+.detalhes-row dt {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #667085;
+}
+
+.detalhes-row dd {
+  font-size: 14px;
+  color: #101828;
+  margin: 0;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.detalhes-row dd pre,
+.detalhes-row dd code {
+  font-family: "DM Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  background: #f8fafc;
+  padding: 8px 10px;
+  border-radius: 8px;
+  display: block;
+  overflow-x: auto;
+}
+
+.detalhes-row dd { max-width: 100%; }
+
+.detalhes-empty {
+  font-size: 14px;
+  color: #667085;
+}
+
+@media (max-width: 600px) {
+  .detalhes-content {
+    padding: 12px;
+  }
+
+  .detalhes-hero {
+    padding: 12px 14px;
+    border-radius: 14px;
+  }
+
+  .detalhes-hero-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+
+  .detalhes-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 12px 0;
+  }
+
+  .detalhes-row dt {
+    font-size: 11px;
+  }
+
+  .detalhes-row dd {
+    font-size: 13px;
+  }
+
+  .detalhes-card {
+    padding: 14px 14px;
+    border-radius: 14px;
+  }
+}

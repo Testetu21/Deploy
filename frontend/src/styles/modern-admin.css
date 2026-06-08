@@ -1,0 +1,666 @@
+/* =========================================================================
+   MODERN ADMIN — FIX FINAL SCROLL + DASHBOARD
+   ========================================================================= */
+
+:root {
+  --ma-bg: #f5f6fa;
+  --ma-surface: #ffffff;
+  --ma-surface-2: #fafbfc;
+  --ma-surface-3: #f3f4f8;
+
+  --ma-text: #0f172a;
+  --ma-text-2: #475569;
+  --ma-muted: #64748b;
+  --ma-muted-2: #94a3b8;
+
+  --ma-border: #e6e8ee;
+  --ma-border-2: #eef0f4;
+  --ma-border-strong: #d4d8e0;
+
+  --ma-primary: #FFD100;
+  --ma-primary-600: #f5c400;
+
+  --ma-accent: #2563eb;
+
+  --ma-success: #059669;
+  --ma-danger: #dc2626;
+  --ma-warning: #b45309;
+
+  --ma-r-sm: 8px;
+  --ma-r-md: 12px;
+  --ma-r-lg: 16px;
+  --ma-r-xl: 20px;
+  --ma-r-pill: 999px;
+
+  --ma-sh-xs: 0 1px 2px rgba(15, 23, 42, .04);
+  --ma-sh-sm: 0 2px 4px rgba(15, 23, 42, .04);
+  --ma-sh-md: 0 4px 12px rgba(15, 23, 42, .06);
+  --ma-sh-lg: 0 12px 32px rgba(15, 23, 42, .08);
+
+  --ma-trans: 180ms cubic-bezier(.4,0,.2,1);
+}
+
+/* =========================================================================
+   RESET GLOBAL
+   ========================================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+
+  overflow-x: hidden !important;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: var(--ma-bg);
+  color: var(--ma-text);
+
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+/* =========================================================================
+   TOPBAR GLOBAL (DESKTOP + MOBILE)
+   ========================================================================= */
+
+.p-topbar,
+.topbar {
+  align-items: center;
+}
+
+/* Alinhamento padrão de header em todas as telas */
+.p-topbar,
+.topbar,
+.dashboard-topbar {
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.p-topbar-title,
+.topbar-title {
+  margin-right: auto !important;
+  text-align: left !important;
+  padding-left: 0 !important;
+}
+
+.p-topbar-actions,
+.topbar-actions {
+  margin-left: auto !important;
+}
+
+.p-topbar-actions .btn-primary,
+.topbar-actions .btn-primary,
+.p-topbar-actions button,
+.topbar-actions button {
+  height: 38px !important;
+  padding: 0 14px !important;
+  font-size: 13px !important;
+  border-radius: 10px !important;
+  white-space: nowrap !important;
+}
+
+.p-topbar-title,
+.topbar-title {
+  display: flex;
+  align-items: center;
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .p-topbar,
+  .topbar {
+    justify-content: flex-start !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 8px;
+    padding-left: 8px !important;
+  }
+
+  .p-topbar-title,
+  .topbar-title {
+    width: auto;
+    font-size: 14px;
+  }
+
+  .p-topbar-actions,
+  .topbar-actions {
+    width: auto !important;
+    justify-content: flex-start !important;
+    padding-left: 8px;
+  }
+
+  .p-topbar-actions .btn-primary,
+  .p-topbar-actions button,
+  .p-topbar-actions .button {
+    height: 28px !important;
+    padding: 0 10px !important;
+    font-size: 11px !important;
+  }
+
+  .p-topbar,
+  .topbar,
+  .dashboard-topbar {
+    padding: 0 14px 0 64px !important;
+    gap: 10px !important;
+  }
+
+  .p-topbar-title,
+  .topbar-title {
+    font-size: 15px !important;
+    justify-content: flex-start !important;
+  }
+
+  .p-topbar-actions .btn-primary,
+  .topbar-actions .btn-primary,
+  .p-topbar-actions button,
+  .topbar-actions button {
+    height: 32px !important;
+    padding: 0 10px !important;
+    font-size: 11px !important;
+  }
+}
+
+/* =========================================================================
+   SCROLLBAR
+   ========================================================================= */
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(15,23,42,.15);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* =========================================================================
+   WRAPPERS
+   ========================================================================= */
+
+:is(
+  .clientes-wrapper,
+  .fornecedores-wrapper,
+  .produtos-wrapper,
+  .vendas-wrapper,
+  .despesas-wrapper,
+  .funcionarios-wrapper,
+  .orcamentos-wrapper,
+  .pagamentos-wrapper,
+  .movimentacoes-wrapper,
+  .loja-wrapper,
+  .home-wrapper,
+  .dashboard-wrapper,
+  .ordem-wrapper,
+  .usuarios-wrapper,
+  .caixa-wrapper
+) {
+  display: flex;
+
+  width: 100%;
+  min-height: 100vh;
+
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  background: var(--ma-bg);
+}
+
+/* =========================================================================
+   PAGES
+   ========================================================================= */
+
+:is(
+  .clientes-page,
+  .fornecedores-page,
+  .produtos-page,
+  .vendas-page,
+  .despesas-page,
+  .funcionarios-page,
+  .orcamentos-page,
+  .pagamentos-page,
+  .movimentacoes-page,
+  .loja-page,
+  .home-page,
+  .dashboard-page,
+  .ordem-page,
+  .usuarios-page,
+  .caixa-page
+) {
+  flex: 1;
+
+  min-height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
+  min-width: 0;
+
+  overflow-x: hidden;
+
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255,209,0,.07), transparent 38%),
+    radial-gradient(circle at 0% 100%, rgba(37,99,235,.04), transparent 40%),
+    var(--ma-bg);
+}
+
+/* =========================================================================
+   DASHBOARD FIX
+   ========================================================================= */
+
+.dashboard-container,
+.dashboard-content,
+.dashboard-page,
+.dashboard-body,
+.dashboard-grid,
+.cards {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  overflow-x: hidden;
+}
+
+.dashboard-grid {
+  display: grid;
+
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+
+  gap: 16px;
+}
+
+.cards {
+  display: grid;
+
+  grid-template-columns: repeat(4, minmax(0,1fr));
+
+  gap: 16px;
+}
+
+.card,
+.panel {
+  min-width: 0;
+}
+
+/* =========================================================================
+   SIDEBAR FIX
+   ========================================================================= */
+
+.sidebar {
+  width: 260px;
+
+  flex-shrink: 0;
+
+  overflow-x: hidden;
+
+  position: sticky;
+  top: 0;
+
+  height: 100vh;
+}
+
+/* =========================================================================
+   TOPBAR
+   ========================================================================= */
+
+.p-topbar,
+.u-topbar,
+.dashboard-topbar {
+  height: 68px;
+
+  padding: 0 28px 0 10px;
+
+  background: rgba(255,255,255,.85);
+
+  backdrop-filter: blur(14px);
+
+  border-bottom: 1px solid var(--ma-border);
+
+  position: sticky;
+  top: 0;
+
+  z-index: 50;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  flex-shrink: 0;
+}
+
+.p-topbar-title,
+.dashboard-topbar h1 {
+  font-size: 17px;
+  font-weight: 700;
+
+  color: var(--ma-text);
+
+  margin: 0;
+}
+
+/* =========================================================================
+   CONTENT
+   ========================================================================= */
+
+.p-content,
+.dashboard-body,
+.u-content,
+.vd-content {
+  flex: 1;
+
+  width: 100%;
+  max-width: 100%;
+
+  overflow-x: hidden;
+
+  padding: 28px 32px 36px;
+}
+
+/* =========================================================================
+   FORM UI
+   ========================================================================= */
+
+.form-card-title {
+  margin: 0 0 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ma-text);
+  letter-spacing: -0.2px;
+}
+
+.form-card-subtitle {
+  margin: -8px 0 16px;
+  font-size: 12px;
+  color: var(--ma-muted);
+}
+
+.form-section-title {
+  margin: 24px 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ma-text);
+}
+
+/* =========================================================================
+   CARDS
+   ========================================================================= */
+
+.card,
+.stat-card,
+.panel,
+.table-card {
+  background: #fff;
+
+  border: 1px solid var(--ma-border);
+
+  border-radius: 18px;
+
+  box-shadow: var(--ma-sh-sm);
+
+  overflow: hidden;
+
+  transition: var(--ma-trans);
+}
+
+.card:hover,
+.stat-card:hover,
+.panel:hover,
+.table-card:hover {
+  transform: translateY(-2px);
+
+  box-shadow: var(--ma-sh-md);
+}
+
+/* =========================================================================
+   TABLE FIX
+   ========================================================================= */
+
+.table-wrap {
+  width: 100%;
+
+  overflow-x: auto;
+  overflow-y: auto;
+
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  max-width: 100%;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+
+  background: #f8fafc;
+
+  z-index: 2;
+}
+
+thead th,
+tbody td {
+  padding: 14px 16px;
+
+  white-space: nowrap;
+}
+
+/* =========================================================================
+   BUTTONS
+   ========================================================================= */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  min-height: 42px;
+
+  padding: 0 18px;
+
+  border-radius: 12px;
+
+  border: 1px solid transparent;
+
+  cursor: pointer;
+
+  transition: var(--ma-trans);
+
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: linear-gradient(
+    135deg,
+    #ffe066 0%,
+    var(--ma-primary) 100%
+  );
+
+  color: #111827;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+/* =========================================================================
+   MOBILE
+   ========================================================================= */
+
+@media (max-width: 1100px) {
+
+  .cards {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+@media (max-width: 860px) {
+
+  .p-content,
+  .dashboard-body,
+  .u-content,
+  .vd-content {
+    padding: 18px 14px 28px;
+  }
+
+  .p-topbar,
+  .u-topbar,
+  .dashboard-topbar {
+    height: 60px;
+
+    padding: 0 14px 0 10px;
+  }
+
+  .stats-row,
+  .cards {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+}
+
+@media (max-width: 720px) {
+
+  .cards,
+  .stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .p-topbar,
+  .u-topbar,
+  .dashboard-topbar {
+    padding: 12px 14px 12px 10px;
+  }
+
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+
+    z-index: 100;
+  }
+
+  .table-card {
+    overflow: visible;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+}
+
+@media (max-width: 520px) {
+
+  .p-content,
+  .dashboard-body,
+  .u-content,
+  .vd-content {
+    padding: 14px 12px 24px;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .form-card,
+  .df-card {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .form-grid,
+  .df-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .form-group.full-width,
+  .df-full {
+    grid-column: 1 / -1;
+  }
+
+  .form-actions,
+  .df-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .form-actions .btn,
+  .df-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+}
+
+/* =========================================================================
+   FINAL HARD FIX
+   ========================================================================= */
+
+.dashboard-wrapper,
+.dashboard-page,
+.dashboard-container,
+.dashboard-content,
+.dashboard-body {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+body.modal-open {
+  overflow: hidden;
+}
