@@ -71,7 +71,6 @@ const navGroups = [
     items: [
       { to: "/caixa",         icon: <IconCaixa />,        label: "Fluxo de Caixa",  niveis: [1, 2, 5] },
       { to: "/movimentacoes", icon: <IconMovimentacao />, label: "Movimentações",   niveis: [1, 2] },
-      { to: "/despesas",      icon: <IconDespesa />,      label: "Despesas",        niveis: [1, 2] },
       { to: "/pagamentos",    icon: <IconPagamento />,    label: "Pagamentos",      niveis: [1, 2, 5] },
     ],
   },

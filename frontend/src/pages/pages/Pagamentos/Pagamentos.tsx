@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "../../components/sidebar";
-import { IconAlert, IconCart, IconCheck, IconClock, IconDown, IconEdit, IconEye, IconMoney, IconPlus, IconSearch, IconTrash } from "../../components/ui/icons";
+import { IconAlert, IconCheck, IconClock, IconEdit, IconEye, IconMoney, IconPlus, IconSearch, IconTrash } from "../../components/ui/icons";
 import "./Pagamentos.css";
 import "../../styles/data-panel.css";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
@@ -25,15 +25,6 @@ interface Pagamento {
   descricao: string;
 }
 
-interface Parcela {
-  id_parcela: number;
-  numero_parcela: number;
-  valor: number;
-  data_vencimento: string;
-  data_pagamento: string | null;
-  status: string;
-}
-
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem("token");
   return fetch(url, {
@@ -47,18 +38,32 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
 }
 
 function useToast() {
-  const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" | "del"; visible: boolean }>({ 
-    msg: "", type: "ok", visible: false 
+  const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" | "del"; visible: boolean }>({
+    msg: "", type: "ok", visible: false
   });
-  
+
   function show(msg: string, type: "ok" | "err" | "del" = "ok") {
     setToast({ msg, type, visible: true });
     setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
   }
-  
+
   return { toast, show };
 }
 
+// ── Calcula se um pagamento pendente está atrasado ────────────────────────────
+function isAtrasado(p: Pagamento) {
+  if (p.status !== 'pendente') return false;
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const venc = new Date(p.data_vencimento);
+  return venc < hoje;
+}
+
+// ── Status "visual" (inclui atrasado calculado) ────────────────────────────────
+function getStatusVisual(p: Pagamento): string {
+  if (isAtrasado(p)) return 'atrasado';
+  return p.status;
+}
 
 function getStatusBadge(status: string): string {
   const statusMap: Record<string, string> = {
@@ -95,13 +100,11 @@ function getFormaPagamentoText(forma: string): string {
 export default function Pagamentos() {
   const navigate = useNavigate();
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
-  const [parcelas, setParcelas] = useState<Record<number, Parcela[]>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [viewParcelasId, setViewParcelasId] = useState<number | null>(null);
   const { toast, show: showToast } = useToast();
 
   async function fetchPagamentos() {
@@ -132,79 +135,58 @@ export default function Pagamentos() {
     }
   }
 
-  async function fetchParcelas(id_pagamento: number) {
-    if (parcelas[id_pagamento]) return;
-    
-    try {
-      const res = await fetchWithAuth(`${API}/pagamentos/${id_pagamento}/parcelas`);
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setParcelas(prev => ({ ...prev, [id_pagamento]: data }));
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
   useEffect(() => {
     fetchPagamentos();
   }, []);
 
   const stats = useMemo(() => {
-    const totalPendente = pagamentos
-      .filter(p => p.status === 'pendente')
-      .reduce((sum, p) => sum + p.valor, 0);
-    
-    const totalPago = pagamentos
-      .filter(p => p.status === 'pago')
-      .reduce((sum, p) => sum + p.valor, 0);
-    
-    const totalAtrasado = pagamentos
-      .filter(p => p.status === 'atrasado')
-      .reduce((sum, p) => sum + p.valor, 0);
-    
+    const pendentesReais = pagamentos.filter(p => p.status === 'pendente' && !isAtrasado(p));
+    const atrasados      = pagamentos.filter(p => isAtrasado(p));
+    const pagos          = pagamentos.filter(p => p.status === 'pago');
+
     return {
       total: pagamentos.length,
       totalValor: pagamentos.reduce((sum, p) => sum + p.valor, 0),
-      pendentes: pagamentos.filter(p => p.status === 'pendente').length,
-      pagos: pagamentos.filter(p => p.status === 'pago').length,
-      atrasados: pagamentos.filter(p => p.status === 'atrasado').length,
-      totalPendente,
-      totalPago,
-      totalAtrasado
+      pendentes: pendentesReais.length,
+      pagos: pagos.length,
+      atrasados: atrasados.length,
+      totalPendente: pendentesReais.reduce((sum, p) => sum + p.valor, 0),
+      totalPago: pagos.reduce((sum, p) => sum + p.valor, 0),
+      totalAtrasado: atrasados.reduce((sum, p) => sum + p.valor, 0),
     };
   }, [pagamentos]);
 
   const lista = useMemo(() => {
     let filtered = pagamentos.filter(p => {
-      const q = search.toLowerCase();
+      const s = search.toLowerCase();
       return (
-        p.cliente_nome?.toLowerCase().includes(q) ||
-        String(p.id_pagamento).includes(q) ||
-        p.descricao?.toLowerCase().includes(q)
+        p.cliente_nome?.toLowerCase().includes(s) ||
+        String(p.id_pagamento).includes(s) ||
+        p.descricao?.toLowerCase().includes(s)
       );
     });
-    
+
     if (filterStatus !== 'todos') {
-      filtered = filtered.filter(p => p.status === filterStatus);
+      filtered = filtered.filter(p => getStatusVisual(p) === filterStatus);
     }
-    
+
     return filtered;
   }, [pagamentos, search, filterStatus]);
 
   async function handleDelete() {
     if (!confirmId) return;
-    
+
     setDeleting(true);
     try {
-      const res = await fetchWithAuth(`${API}/pagamentos/${confirmId}`, { 
-        method: "DELETE" 
+      const res = await fetchWithAuth(`${API}/pagamentos/${confirmId}`, {
+        method: "DELETE"
       });
-      
+
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.error);
       }
-      
+
       setConfirmId(null);
       showToast("Pagamento excluído com sucesso!", "del");
       await fetchPagamentos();
@@ -216,37 +198,32 @@ export default function Pagamentos() {
     }
   }
 
- async function handleBaixarPagamento(id_pagamento: number) {
-  try {
-    const res = await fetchWithAuth(`${API}/pagamentos/${id_pagamento}/baixar`, {
-      method: "PUT"
-    });
-    
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || 'Erro ao baixar pagamento');
+  async function handleBaixarPagamento(id_pagamento: number) {
+    try {
+      const res = await fetchWithAuth(`${API}/pagamentos/${id_pagamento}`, {
+        method: "PUT",
+        body: JSON.stringify({ status: 'pago' })
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Erro ao baixar pagamento');
+      }
+
+      showToast("Pagamento baixado com sucesso!", "ok");
+
+      setPagamentos(prev =>
+        prev.map(p =>
+          p.id_pagamento === id_pagamento
+            ? { ...p, status: 'pago', data_pagamento: new Date().toISOString() }
+            : p
+        )
+      );
+    } catch (err) {
+      console.error(err);
+      showToast(err instanceof Error ? err.message : "Erro ao baixar pagamento", "err");
     }
-    
-    showToast("Pagamento baixado com sucesso!", "ok");
-    
-    // 🔥 CORRIGIDO: status como string 'pago'
-    setPagamentos(prevPagamentos => 
-      prevPagamentos.map(pagamento => 
-        pagamento.id_pagamento === id_pagamento 
-          ? { 
-              ...pagamento, 
-              status: 'pago',  // ← string, não número 1
-              data_pagamento: new Date().toISOString()
-            }
-          : pagamento
-      )
-    );
-    
-  } catch (err) {
-    console.error(err);
-    showToast(err instanceof Error ? err.message : "Erro ao baixar pagamento", "err");
   }
-}
 
   function exportCSV() {
     const headers = ["ID", "Cliente", "Valor", "Forma Pagamento", "Status", "Vencimento", "Descrição"];
@@ -255,11 +232,11 @@ export default function Pagamentos() {
       p.cliente_nome,
       formatCurrency(p.valor),
       getFormaPagamentoText(p.forma_pagamento),
-      getStatusText(p.status),
+      getStatusText(getStatusVisual(p)),
       formatDate(p.data_vencimento),
       p.descricao || ""
     ]);
-    
+
     const csv = [headers, ...rows].map(r => r.join(";")).join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
@@ -281,10 +258,8 @@ export default function Pagamentos() {
       <div className="pagamentos-page">
         <header className="p-topbar">
           <div className="p-topbar-title">Pagamentos</div>
-          <div className="p-topbar-title">
-          </div>
           <div className="p-topbar-actions">
-<button className="btn btn-primary" onClick={() => navigate("/pagamentos/novo")}>
+            <button className="btn btn-primary" onClick={() => navigate("/pagamentos/novo")}>
               <IconPlus /> Novo Pagamento
             </button>
           </div>
@@ -312,7 +287,7 @@ export default function Pagamentos() {
             <div className="stat-card">
               <div className="stat-icon si-green"><IconCheck /></div>
               <div className="stat-info">
-                <p>Recebidos</p>
+                <p>Pagos</p>
                 <strong>{formatCurrency(stats.totalPago)}</strong>
                 <small>{stats.pagos} pagos</small>
               </div>
@@ -333,9 +308,9 @@ export default function Pagamentos() {
               <h3>Lista de Pagamentos</h3>
               <div className="dp-header-right">
                 <div className="filter-group">
-                  <select 
+                  <select
                     className="dp-select"
-                    value={filterStatus} 
+                    value={filterStatus}
                     onChange={e => setFilterStatus(e.target.value)}
                   >
                     <option value="todos">Todos os status</option>
@@ -346,11 +321,11 @@ export default function Pagamentos() {
                   </select>
                   <div className="dp-search">
                     <IconSearch />
-                    <input 
-                      type="text" 
-                      value={search} 
-                      onChange={e => setSearch(e.target.value)} 
-                      placeholder="Buscar por cliente, ID..." 
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      placeholder="Buscar por cliente, ID..."
                     />
                   </div>
                 </div>
@@ -367,7 +342,7 @@ export default function Pagamentos() {
                 <div className="dp-empty-icon"><IconMoney style={{ width: 32, height: 32 }} /></div>
                 <p>
                   Nenhum pagamento encontrado.<br />
-                  Clique em <strong>Novo Pagamento</strong> para registrar um recebimento.
+                  Clique em <strong>Novo Pagamento</strong> para registrar uma despesa.
                 </p>
               </div>
             ) : (
@@ -383,65 +358,56 @@ export default function Pagamentos() {
                   </tr>
                 </thead>
                 <tbody>
-                  {lista.map(p => (
-                    <tr key={p.id_pagamento}>
-                      <td className="dp-cell-muted">{p.cliente_nome}</td>
-                      <td className="dp-cell-mono" data-label="Valor">{formatCurrency(p.valor)}</td>
-                      <td className="dp-cell-muted" data-label="Forma">{getFormaPagamentoText(p.forma_pagamento)}</td>
-                      <td className="dp-cell-muted" data-label="Vencimento">{formatDate(p.data_vencimento)}</td>
-                      <td>
-                        <span className={`status-badge ${getStatusBadge(p.status)}`}>
-                          {getStatusText(p.status)}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="dp-row-actions">
-                          <button
-                            className="dp-btn-icon dp-view"
-                            title="Ver detalhes"
-                            onClick={() => navigate("/detalhes", { state: { title: "Pagamento", data: p } })}
-                          >
-                            <IconEye />
-                          </button>
-                          {p.parcelas > 1 && (
-                            <button 
-                              className="dp-btn-icon dp-parcelas" 
-                              title="Ver parcelas" 
-                              onClick={() => {
-                                setViewParcelasId(p.id_pagamento);
-                                fetchParcelas(p.id_pagamento);
-                              }}
+                  {lista.map(p => {
+                    const statusVisual = getStatusVisual(p);
+                    return (
+                      <tr key={p.id_pagamento}>
+                        <td className="dp-cell-muted">{p.cliente_nome}</td>
+                        <td className="dp-cell-mono" data-label="Valor">{formatCurrency(p.valor)}</td>
+                        <td className="dp-cell-muted" data-label="Forma">{getFormaPagamentoText(p.forma_pagamento)}</td>
+                        <td className="dp-cell-muted" data-label="Vencimento">{formatDate(p.data_vencimento)}</td>
+                        <td>
+                          <span className={`status-badge ${getStatusBadge(statusVisual)}`}>
+                            {getStatusText(statusVisual)}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="dp-row-actions">
+                            <button
+                              className="dp-btn-icon dp-view"
+                              title="Ver detalhes"
+                              onClick={() => navigate("/detalhes", { state: { title: "Pagamento", data: p } })}
                             >
                               <IconEye />
                             </button>
-                          )}
-                          {p.status === 'pendente' && (
-                            <button 
-                              className="icon-btn success" 
-                              title="Baixar pagamento" 
-                              onClick={() => handleBaixarPagamento(p.id_pagamento)}
+                            {p.status === 'pendente' && (
+                              <button
+                                className="icon-btn success"
+                                title="Dar baixa"
+                                onClick={() => handleBaixarPagamento(p.id_pagamento)}
+                              >
+                                <IconCheck />
+                              </button>
+                            )}
+                            <button
+                              className="dp-btn-icon dp-edit"
+                              title="Editar"
+                              onClick={() => navigate(`/pagamentos/editar/${p.id_pagamento}`)}
                             >
-                              <IconCheck />
+                              <IconEdit />
                             </button>
-                          )}
-                          <button 
-                            className="dp-btn-icon dp-edit" 
-                            title="Editar" 
-                            onClick={() => navigate(`/pagamentos/editar/${p.id_pagamento}`)}
-                          >
-                            <IconEdit />
-                          </button>
-                          <button 
-                            className="dp-btn-icon dp-del" 
-                            title="Remover" 
-                            onClick={() => setConfirmId(p.id_pagamento)}
-                          >
-                            <IconTrash />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            <button
+                              className="dp-btn-icon dp-del"
+                              title="Remover"
+                              onClick={() => setConfirmId(p.id_pagamento)}
+                            >
+                              <IconTrash />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table></div>
             )}
@@ -449,56 +415,11 @@ export default function Pagamentos() {
         </div>
       </div>
 
-      {/* Modal de Parcelas */}
-      {viewParcelasId !== null && (
-      <div 
-        className="modal-overlay open"
-        onClick={() => setViewParcelasId(null)}
-      >
-        <div className="parcelas-modal" onClick={e => e.stopPropagation()}>
-          <h3><IconCart style={{ width: 18, height: 18, verticalAlign: "-3px" }} /> Parcelas do Pagamento #{viewParcelasId}</h3>
-          {viewParcelasId && parcelas[viewParcelasId] && (
-            <div className="dp-table-wrap"><table className="dp-table dp-table-actions">
-              <thead>
-                <tr>
-                  <th>Parcela</th>
-                  <th>Valor</th>
-                  <th>Vencimento</th>
-                  <th>Data Pagamento</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {parcelas[viewParcelasId].map(parcela => (
-                  <tr key={parcela.id_parcela}>
-                    <td>{parcela.numero_parcela}/{pagamentos.find(p => p.id_pagamento === viewParcelasId)?.parcelas}</td>
-                    <td>{formatCurrency(parcela.valor)}</td>
-                    <td>{formatDate(parcela.data_vencimento)}</td>
-                    <td>{parcela.data_pagamento ? formatDate(parcela.data_pagamento) : '—'}</td>
-                    <td>
-                      <span className={`status-badge ${getStatusBadge(parcela.status)}`}>
-                        {getStatusText(parcela.status)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table></div>
-          )}
-          <div className="modal-actions">
-            <button className="btn btn-primary" onClick={() => setViewParcelasId(null)}>
-              Fechar
-            </button>
-          </div>
-        </div>
-      </div>
-      )}
-
       <ConfirmDialog
         open={confirmId !== null}
         title="Remover pagamento?"
         message={
-          <>Pagamento de <strong>{confirmPagamento ? formatCurrency(confirmPagamento.valor) : ''}</strong> do cliente <strong>{confirmPagamento?.cliente_nome}</strong> será removido.</>
+          <>Pagamento de <strong>{confirmPagamento ? formatCurrency(confirmPagamento.valor) : ''}</strong> referente a <strong>{confirmPagamento?.descricao}</strong> será removido.</>
         }
         confirmLabel={deleting ? "Removendo..." : "Sim, remover"}
         variant="danger"

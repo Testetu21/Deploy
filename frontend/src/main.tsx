@@ -51,8 +51,7 @@ import Caixa            from "./pages/pages/FluxoCaixa/FluxoCaixa";
 import CaixaForm        from "./pages/pages/FluxoCaixa/FluxoCaixaForm";
 import Pagamentos       from "./pages/pages/Pagamentos/Pagamentos";
 import PagamentosForm   from "./pages/pages/Pagamentos/PagamentosForm";
-import Movimentacoes    from "./pages/pages/movimentacoes/movimentacoes";
-import Despesas         from "./pages/pages/despesas/Despesas";
+import Movimentacoes    from "./pages/pages/movimentacoes/movimentacoes"; 
 import DespesasForm     from "./pages/pages/despesas/DespesasForm";
 import Usuarios         from "./pages/pages/usuarios/Usuarios";
 import Relatorios       from "./pages/pages/relatorios/Relatorios";
@@ -132,12 +131,7 @@ createRoot(root!).render(
       {/* ── PAGAMENTOS — caixa e gerente+ ── */}
       <Route path="/pagamentos"          element={<PrivateRoute element={<Pagamentos />}    niveis={CAIXA} />} />
       <Route path="/pagamentos/novo"     element={<PrivateRoute element={<PagamentosForm />} niveis={CAIXA} />} />
-      <Route path="/pagamentos/editar/:id" element={<PrivateRoute element={<PagamentosForm />} niveis={CAIXA} />} />
-
-      {/* ── DESPESAS — gerente+ ── */}
-      <Route path="/despesas"            element={<PrivateRoute element={<Despesas />}      niveis={CAIXA} />} />
-      <Route path="/despesas/novo"       element={<PrivateRoute element={<DespesasForm />}  niveis={CAIXA} />} />
-      <Route path="/despesas/editar/:id" element={<PrivateRoute element={<DespesasForm />}  niveis={CAIXA} />} />
+      <Route path="/pagamentos/editar/:id" element={<PrivateRoute element={<PagamentosForm />} niveis={CAIXA} />} />  
 
       {/* ── MOVIMENTAÇÕES — gerente+ ── */}
       <Route path="/movimentacoes"       element={<PrivateRoute element={<Movimentacoes />} niveis={CAIXA} />} />

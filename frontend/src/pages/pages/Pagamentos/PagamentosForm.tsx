@@ -8,26 +8,12 @@ import { formatCurrencyInput, formatCurrencyValue, parseCurrency } from "../../.
 
 const API = `${API_URL}/api`;
 
-interface Cliente {
-  id_cliente: number;
-  nome: string;
-}
-
-interface Venda {
-  id_venda: number;
-  valor_total: number;
-  data_venda: string;
-  cliente_nome: string;
-}
-
 interface PagamentoFormData {
   valor: string;
-  data_pagamento: string;
+  data_vencimento: string;
   forma_pagamento: string;
-  status: number;
+  status: string;
   descricao: string;
-  id_venda: number | null;
-  id_cliente: number;
 }
 
 const IconArrowLeft = () => (
@@ -58,15 +44,15 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
 }
 
 function useToast() {
-  const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" | "del"; visible: boolean }>({ 
-    msg: "", type: "ok", visible: false 
+  const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" | "del"; visible: boolean }>({
+    msg: "", type: "ok", visible: false
   });
-  
+
   function show(msg: string, type: "ok" | "err" | "del" = "ok") {
     setToast({ msg, type, visible: true });
     setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
   }
-  
+
   return { toast, show };
 }
 
@@ -74,75 +60,38 @@ export default function PagamentosForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = !!id;
-  
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [vendas, setVendas] = useState<Venda[]>([]);
+
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [statusOriginal, setStatusOriginal] = useState<string>('pendente');
   const { toast, show: showToast } = useToast();
-  
+
   const [formData, setFormData] = useState<PagamentoFormData>({
     valor: "",
-    data_pagamento: new Date().toISOString().split('T')[0],
+    data_vencimento: new Date().toISOString().split('T')[0],
     forma_pagamento: 'dinheiro',
-    status: 1,
+    status: 'pendente',
     descricao: '',
-    id_venda: null,
-    id_cliente: 0
   });
 
-  // Buscar clientes - CORRIGIDO
-useEffect(() => {
-  async function fetchClientes() {
-    try {
-      const res = await fetchWithAuth(`${API}/clientes`);
-      if (!res.ok) throw new Error('Erro ao carregar clientes');
-      const data = await res.json();
-      setClientes(data);
-    } catch (err) {
-      console.error(err);
-      showToast('Erro ao carregar lista de clientes', 'err');
-    }
-  }
-  
-  fetchClientes();
-}, []);
-
-// Buscar vendas - CORRIGIDO
-useEffect(() => {
-  async function fetchVendas() {
-    try {
-      const res = await fetchWithAuth(`${API}/vendas`);
-      if (!res.ok) throw new Error('Erro ao carregar vendas');
-      const data = await res.json();
-      setVendas(data);
-    } catch (err) {
-      console.error(err);
-    }
-  }
-  
-  fetchVendas();
-}, []);
-
-  // Buscar dados se for edição
+  // ── Carregar dados se for edição ────────────────────────────────────────────
   useEffect(() => {
     async function fetchPagamento() {
       if (!isEditing) return;
-      
+
       setLoading(true);
       try {
         const res = await fetchWithAuth(`${API}/pagamentos/${id}`);
         if (!res.ok) throw new Error('Erro ao carregar pagamento');
         const data = await res.json();
-        
+
+        setStatusOriginal(data.status);
         setFormData({
           valor: formatCurrencyValue(Number(data.valor || 0)),
-          data_pagamento: data.data_pagamento ? data.data_pagamento.split('T')[0] : '',
+          data_vencimento: data.data_vencimento ? data.data_vencimento.split('T')[0] : '',
           forma_pagamento: data.forma_pagamento,
           status: data.status,
           descricao: data.descricao || '',
-          id_venda: data.id_venda,
-          id_cliente: data.id_cliente
         });
       } catch (err) {
         console.error(err);
@@ -152,17 +101,17 @@ useEffect(() => {
         setLoading(false);
       }
     }
-    
+
     fetchPagamento();
   }, [id, isEditing, navigate]);
 
+  const jaPago = isEditing && statusOriginal === 'pago';
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
+
     if (name === 'valor') {
       setFormData(prev => ({ ...prev, [name]: formatCurrencyInput(value) }));
-    } else if (name === 'id_cliente' || name === 'id_venda' || name === 'status') {
-      setFormData(prev => ({ ...prev, [name]: parseInt(value) || 0 }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -170,57 +119,80 @@ useEffect(() => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validações
-    if (!formData.id_cliente || formData.id_cliente === 0) {
-      showToast('Selecione um cliente', 'err');
+
+    // ── EDIÇÃO DE PAGAMENTO JÁ PAGO: só envia status ──
+    if (jaPago) {
+      setSaving(true);
+      try {
+        const res = await fetchWithAuth(`${API}/pagamentos/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ status: formData.status }),
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || 'Erro ao salvar');
+        }
+
+        showToast('Status atualizado com sucesso!', 'ok');
+        setTimeout(() => navigate('/pagamentos'), 1200);
+      } catch (err) {
+        console.error(err);
+        showToast(err instanceof Error ? err.message : 'Erro ao salvar', 'err');
+      } finally {
+        setSaving(false);
+      }
       return;
     }
-    
+
+    // ── CRIAÇÃO OU EDIÇÃO NORMAL ──
     if (parseCurrency(formData.valor) <= 0) {
-      showToast('Valor do pagamento deve ser maior que zero', 'err');
+      showToast('Valor deve ser maior que zero', 'err');
       return;
     }
-    
+    if (!formData.descricao.trim()) {
+      showToast('Descrição é obrigatória', 'err');
+      return;
+    }
+    if (!formData.data_vencimento) {
+      showToast('Data é obrigatória', 'err');
+      return;
+    }
     if (!formData.forma_pagamento) {
       showToast('Selecione uma forma de pagamento', 'err');
       return;
     }
-    
+
     setSaving(true);
-    
+
     try {
-      let url = `${API}/pagamentos`;
-      let method = 'POST';
-      
-      if (isEditing) {
-        url = `${API}/pagamentos/${id}`;
-        method = 'PUT';
-      }
-      
+      const url    = isEditing ? `${API}/pagamentos/${id}` : `${API}/pagamentos`;
+      const method = isEditing ? 'PUT' : 'POST';
+
       const payload = {
-        ...formData,
         valor: parseCurrency(formData.valor),
+        forma_pagamento: formData.forma_pagamento,
+        descricao: formData.descricao,
+        data_vencimento: formData.data_vencimento,
+        status: formData.status,
       };
 
       const res = await fetchWithAuth(url, {
         method,
         body: JSON.stringify(payload)
       });
-      
+
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.error || 'Erro ao salvar');
       }
-      
-      showToast(isEditing ? 'Pagamento atualizado com sucesso!' : 'Pagamento registrado com sucesso!', 'ok');
-      
-      setTimeout(() => {
-        navigate('/pagamentos');
-      }, 1500);
+
+      showToast(isEditing ? 'Pagamento atualizado com sucesso!' : 'Retirada registrada com sucesso!', 'ok');
+
+      setTimeout(() => navigate('/pagamentos'), 1200);
     } catch (err) {
       console.error(err);
-      showToast(err instanceof Error ? err.message : 'Erro ao salvar pagamento', 'err');
+      showToast(err instanceof Error ? err.message : 'Erro ao salvar', 'err');
     } finally {
       setSaving(false);
     }
@@ -246,7 +218,7 @@ useEffect(() => {
       <div className="pagamentos-page">
         <header className="p-topbar">
           <div className="p-topbar-title">
-            Pagamentos <span>{isEditing ? 'Editar Pagamento' : 'Novo Pagamento'}</span>
+            Pagamentos <span>{isEditing ? 'Editar Retirada' : 'Nova Retirada'}</span>
           </div>
           <div className="p-topbar-actions">
             <button className="btn btn-back" onClick={() => navigate('/pagamentos')}>
@@ -257,119 +229,131 @@ useEffect(() => {
 
         <div className="p-content">
           <div className="form-card">
-            <form onSubmit={handleSubmit}>
-              <div className="form-grid">
-                {/* Cliente */}
-                <div className="form-group">
-                  <label htmlFor="id_cliente">Cliente *</label>
-                  <select
-                    id="id_cliente"
-                    name="id_cliente"
-                    value={formData.id_cliente}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value={0}>Selecione um cliente...</option>
-                    {clientes.map(cliente => (
-                      <option key={cliente.id_cliente} value={cliente.id_cliente}>
-                        {cliente.nome}
-                      </option>
-                    ))}
-                  </select>
-                </div>
 
-                {/* Data Pagamento */}
-                <div className="form-group">
-                  <label htmlFor="data_pagamento">Data do Pagamento *</label>
-                  <input
-                    type="date"
-                    id="data_pagamento"
-                    name="data_pagamento"
-                    value={formData.data_pagamento}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-
-                {/* Valor */}
-                <div className="form-group">
-                  <label htmlFor="valor">Valor (R$) *</label>
-                  <input
-                      type="text"
-                    id="valor"
-                    name="valor"
-                    value={formData.valor}
-                    onChange={handleChange}
-                      inputMode="decimal"
-                    required
-                  />
-                </div>
-
-                {/* Forma Pagamento */}
-                <div className="form-group">
-                  <label htmlFor="forma_pagamento">Forma de Pagamento *</label>
-                  <select
-                    id="forma_pagamento"
-                    name="forma_pagamento"
-                    value={formData.forma_pagamento}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="dinheiro">Dinheiro</option>
-                    <option value="cartao_credito">Cartão de Crédito</option>
-                    <option value="cartao_debito">Cartão de Débito</option>
-                    <option value="pix">PIX</option>
-                    <option value="boleto">Boleto</option>
-                    <option value="transferencia">Transferência</option>
-                  </select>
-                </div>
-
-                {/* Status */}
-                <div className="form-group">
-                  <label htmlFor="status">Status *</label>
-                  <select
-                    id="status"
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value={1}>Pago</option>
-                    <option value={0}>Pendente</option>
-                  </select>
-                </div>
-
-                {/* Venda (opcional) */}
-                <div className="form-group">
-                  <label htmlFor="id_venda">Venda (opcional)</label>
-                  <select
-                    id="id_venda"
-                    name="id_venda"
-                    value={formData.id_venda || 0}
-                    onChange={handleChange}
-                  >
-                    <option value={0}>Nenhuma venda associada</option>
-                    {vendas.map(venda => (
-                      <option key={venda.id_venda} value={venda.id_venda}>
-                        #{venda.id_venda} - {venda.cliente_nome} - {formatCurrencyValue(Number(venda.valor_total || 0))}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Descrição */}
-                <div className="form-group full-width">
-                  <label htmlFor="descricao">Descrição</label>
-                  <textarea
-                    id="descricao"
-                    name="descricao"
-                    value={formData.descricao}
-                    onChange={handleChange}
-                    rows={3}
-                    placeholder="Observações sobre o pagamento..."
-                  />
-                </div>
+            {jaPago && (
+              <div style={{
+                background: '#fffbeb',
+                border: '1px solid #fde68a',
+                borderRadius: 12,
+                padding: '14px 16px',
+                marginBottom: 20,
+                fontSize: 13,
+                color: '#92400e'
+              }}>
+                ⚠️ Este pagamento já foi confirmado. Você só pode alterar o <strong>status</strong>.
+                Mudar para "Pendente" ou "Cancelado" vai estornar o valor no caixa.
               </div>
+            )}
+
+            <form onSubmit={handleSubmit}>
+
+              {jaPago ? (
+                /* ── FORM REDUZIDO: SÓ STATUS ── */
+                <div className="form-grid">
+                  <div className="form-group full-width">
+                    <label>Descrição</label>
+                    <input type="text" value={formData.descricao} disabled />
+                  </div>
+                  <div className="form-group">
+                    <label>Valor</label>
+                    <input type="text" value={formData.valor} disabled />
+                  </div>
+                  <div className="form-group">
+                    <label>Forma de pagamento</label>
+                    <input type="text" value={formData.forma_pagamento} disabled />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="status">Status *</label>
+                    <select
+                      id="status"
+                      name="status"
+                      value={formData.status}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="pago">Pago</option>
+                      <option value="pendente">Pendente</option>
+                      <option value="cancelado">Cancelado</option>
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                /* ── FORM PADRÃO (criação ou edição não-paga) ── */
+                <div className="form-grid">
+                  <div className="form-group full-width">
+                    <label htmlFor="descricao">Descrição *</label>
+                    <input
+                      type="text"
+                      id="descricao"
+                      name="descricao"
+                      value={formData.descricao}
+                      onChange={handleChange}
+                      placeholder="Ex: Conta de energia, Motoboy, Fornecedor..."
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="valor">Valor (R$) *</label>
+                    <input
+                      type="text"
+                      id="valor"
+                      name="valor"
+                      value={formData.valor}
+                      onChange={handleChange}
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="data_vencimento">Data *</label>
+                    <input
+                      type="date"
+                      id="data_vencimento"
+                      name="data_vencimento"
+                      value={formData.data_vencimento}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="forma_pagamento">Forma de pagamento *</label>
+                    <select
+                      id="forma_pagamento"
+                      name="forma_pagamento"
+                      value={formData.forma_pagamento}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="dinheiro">Dinheiro</option>
+                      <option value="cartao_credito">Cartão de Crédito</option>
+                      <option value="cartao_debito">Cartão de Débito</option>
+                      <option value="pix">PIX</option>
+                      <option value="boleto">Boleto</option>
+                      <option value="transferencia">Transferência</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="status">Status *</label>
+                    <select
+                      id="status"
+                      name="status"
+                      value={formData.status}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="pendente">Pendente</option>
+                      <option value="pago">Pago (sai do caixa agora)</option>
+                      <option value="cancelado">Cancelado</option>
+                    </select>
+                  </div>
+                </div>
+              )}
 
               <div className="form-actions">
                 <button type="button" className="btn btn-ghost" onClick={() => navigate('/pagamentos')}>
