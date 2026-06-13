@@ -173,6 +173,12 @@
 .dp-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: auto;
+}
+
+.dp-table th,
+.dp-table td {
+  box-sizing: border-box;
 }
 
 /* Cabeçalho */
@@ -380,12 +386,12 @@
   .dp-table tbody td:last-child  { padding-right: 16px; }
   .dp-search input { width: 160px; }
 
-  .dp-table thead th:last-child,
-  .dp-table tbody td:last-child,
   .dp-table-actions thead th:last-child,
   .dp-table-actions tbody td:last-child {
     position: sticky;
     right: 0;
+    min-width: 120px;
+    white-space: nowrap;
     background: var(--dp-bg);
     box-shadow: -6px 0 10px rgba(15, 23, 42, 0.05);
     z-index: 2;
