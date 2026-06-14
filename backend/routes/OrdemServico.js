@@ -1,12 +1,12 @@
 const router = require('express').Router();
-const auth   = require('../middleware/Auth');
+const auth = require('../middleware/Auth');
 const permissao = require('../middleware/permissao');
 const { q, buildSet } = require('../db');
 const { err400, err404, err500, ok } = require('../helpers/Response');
 
-const pTecnico  = permissao(1, 2, 4);     // admin, gerente, técnico
-const pGerente  = permissao(1, 2);        // só admin e gerente
-const pOS       = permissao(1, 2, 4);     // admin, gerente, técnico (criar OS)
+const pTecnico = permissao(1, 2, 4);     // admin, gerente, técnico
+const pGerente = permissao(1, 2);        // só admin e gerente
+const pOS = permissao(1, 2, 4);     // admin, gerente, técnico (criar OS)
 
 // ── helper: cria notificação para um funcionário ──────────────────────────────
 async function notificar(id_funcionario, titulo, mensagem) {
@@ -32,19 +32,19 @@ router.get('/', auth, pTecnico, async (req, res) => {
     }
 
     res.json(await q(`
-      SELECT
-        os.id_ordem_servico, os.descricao_problema, os.status,
-        os.status_execucao,  os.id_orcamento,       os.data_abertura,
-        os.data_recebimento, os.data_conclusao,     os.equipamento,
-        os.numero_serie,     os.condicao_entrada,
-        c.nome AS nome_cliente,
-        f.nome AS nome_tecnico
-      FROM ordem_servico os
-      LEFT JOIN cliente     c ON c.id_cliente      = os.id_cliente
-      LEFT JOIN funcionario f ON f.id_funcionario  = os.id_tecnico
-      ${filtro}
-      ORDER BY os.data_abertura DESC
-    `));
+        SELECT
+          os.id_ordem_servico, os.descricao_problema, os.status,
+          os.status_execucao,  os.id_orcamento,       os.data_abertura,
+          os.data_recebimento, os.data_conclusao,     os.equipamento,
+          os.numero_serie,     os.condicao_entrada,
+          c.nome AS nome_cliente,
+          f.nome AS nome_tecnico
+        FROM ordem_servico os
+        LEFT JOIN cliente     c ON c.id_cliente      = os.id_cliente
+        LEFT JOIN funcionario f ON f.id_funcionario  = os.id_tecnico
+        ${filtro}
+        ORDER BY os.data_abertura DESC
+      `));
   } catch (e) { err500(res, e); }
 });
 
@@ -52,11 +52,11 @@ router.get('/', auth, pTecnico, async (req, res) => {
 router.get('/:id', auth, pTecnico, async (req, res) => {
   try {
     const [os] = await q(`SELECT os.*, c.nome AS nome_cliente, c.telefone AS telefone_cliente,
-                f.nome AS nome_tecnico
-         FROM ordem_servico os
-         LEFT JOIN cliente     c ON c.id_cliente       = os.id_cliente
-         LEFT JOIN funcionario f ON f.id_funcionario   = os.id_tecnico
-         WHERE os.id_ordem_servico = ?`, [req.params.id]);
+                  f.nome AS nome_tecnico
+          FROM ordem_servico os
+          LEFT JOIN cliente     c ON c.id_cliente       = os.id_cliente
+          LEFT JOIN funcionario f ON f.id_funcionario   = os.id_tecnico
+          WHERE os.id_ordem_servico = ?`, [req.params.id]);
 
     if (!os) return err404(res, 'OS não encontrada');
 
@@ -66,9 +66,9 @@ router.get('/:id', auth, pTecnico, async (req, res) => {
 
     // Busca tabelas auxiliares com tolerância a erros (tabelas podem não existir ainda)
     let diagnosticos = [], reparos = [], garantia = null;
-    try { diagnosticos = await q(`SELECT d.*, f.nome AS nome_tecnico FROM os_diagnostico d LEFT JOIN funcionario f ON f.id_funcionario = d.id_tecnico WHERE d.id_ordem_servico = ? ORDER BY d.created_at ASC`, [req.params.id]); } catch {}
-    try { reparos = await q(`SELECT r.*, f.nome AS nome_tecnico FROM os_reparo r LEFT JOIN funcionario f ON f.id_funcionario = r.id_tecnico WHERE r.id_ordem_servico = ? ORDER BY r.created_at ASC`, [req.params.id]); } catch {}
-    try { const g = await q(`SELECT * FROM os_garantia WHERE id_ordem_servico = ?`, [req.params.id]); garantia = g[0] || null; } catch {}
+    try { diagnosticos = await q(`SELECT d.*, f.nome AS nome_tecnico FROM os_diagnostico d LEFT JOIN funcionario f ON f.id_funcionario = d.id_tecnico WHERE d.id_ordem_servico = ? ORDER BY d.created_at ASC`, [req.params.id]); } catch { }
+    try { reparos = await q(`SELECT r.*, f.nome AS nome_tecnico FROM os_reparo r LEFT JOIN funcionario f ON f.id_funcionario = r.id_tecnico WHERE r.id_ordem_servico = ? ORDER BY r.created_at ASC`, [req.params.id]); } catch { }
+    try { const g = await q(`SELECT * FROM os_garantia WHERE id_ordem_servico = ?`, [req.params.id]); garantia = g[0] || null; } catch { }
 
     res.json({ ...os, diagnosticos, reparos, garantia });
   } catch (e) { err500(res, e); }
@@ -81,8 +81,8 @@ router.post('/', auth, pOS, async (req, res) => {
     equipamento, numero_serie, condicao_entrada, id_orcamento
   } = req.body;
 
-  if (!id_cliente || !descricao_problema)
-    return err400(res, 'Campos obrigatórios: id_cliente, descricao_problema');
+  if (!descricao_problema)
+    return err400(res, 'Campos obrigatórios: descricao_problema');
 
   try {
     // Se o usuário for técnico (nivel 4), força o técnico da OS como o usuário autenticado
@@ -94,10 +94,10 @@ router.post('/', auth, pOS, async (req, res) => {
 
     if (orcamentoId) {
       const [orc] = await q(`
-        SELECT id_orcamento, id_cliente, descricao, status
-        FROM orcamento
-        WHERE id_orcamento = ?
-      `, [orcamentoId]);
+          SELECT id_orcamento, id_cliente, descricao, status
+          FROM orcamento
+          WHERE id_orcamento = ?
+        `, [orcamentoId]);
 
       if (!orc) {
         return err404(res, 'Orçamento não encontrado');
@@ -108,10 +108,10 @@ router.post('/', auth, pOS, async (req, res) => {
       }
 
       const osExistente = await q(`
-        SELECT id_ordem_servico
-        FROM ordem_servico
-        WHERE id_orcamento = ?
-      `, [orcamentoId]);
+          SELECT id_ordem_servico
+          FROM ordem_servico
+          WHERE id_orcamento = ?
+        `, [orcamentoId]);
 
       if (osExistente.length) {
         return err400(res, `Este orçamento já está vinculado à OS #${osExistente[0].id_ordem_servico}`);
@@ -120,13 +120,13 @@ router.post('/', auth, pOS, async (req, res) => {
 
     const r = await q(
       `INSERT INTO ordem_servico
-         (id_cliente, id_tecnico, descricao_problema,
-          equipamento, numero_serie, condicao_entrada,
-          id_orcamento, status, status_execucao, valor_total, data_abertura)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, NOW())`,
-      [id_cliente, tecnicoId, descricao_problema,
-       equipamento || null, numero_serie || null, condicao_entrada || null,
-       orcamentoId]
+      (id_cliente, id_tecnico, descricao_problema,
+        equipamento, numero_serie, condicao_entrada,
+        id_orcamento, status, status_execucao, valor_total, data_abertura)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, NOW())`,
+      [id_cliente || null, tecnicoId, descricao_problema,
+      equipamento || null, numero_serie || null, condicao_entrada || null,
+        orcamentoId]
     );
 
     const id_ordem = r.insertId;
@@ -145,11 +145,16 @@ router.post('/', auth, pOS, async (req, res) => {
 });
 
 // ── ATUALIZAR DADOS GERAIS — gerente+ ─────────────────────────────────────────
-router.put('/:id', auth, pGerente, async (req, res) => {
+router.put('/:id', auth, pTecnico, async (req, res) => {
   const { id } = req.params;
   try {
-    const exists = await q(`SELECT id_ordem_servico, id_tecnico FROM ordem_servico WHERE id_ordem_servico=?`, [id]);
-    if (!exists.length) return err404(res, 'OS não encontrada');
+    const [osAtual] = await q(`SELECT id_ordem_servico, id_tecnico, status_execucao, id_orcamento FROM ordem_servico WHERE id_ordem_servico=?`, [id]);
+    if (!osAtual) return err404(res, 'OS não encontrada');
+
+    // Bloqueia edição se concluída ou cancelada
+    if ([3, 4].includes(Number(osAtual.status_execucao))) {
+      return err400(res, 'OS concluída ou cancelada não pode ser editada, apenas excluída');
+    }
 
     if (Object.prototype.hasOwnProperty.call(req.body, 'id_orcamento')) {
       const raw = req.body.id_orcamento;
@@ -157,14 +162,29 @@ router.put('/:id', auth, pGerente, async (req, res) => {
       req.body.id_orcamento = num && Number.isFinite(num) ? num : null;
     }
 
-    const tecnicoAnterior = exists[0].id_tecnico;
+    const tecnicoAnterior = osAtual.id_tecnico;
     const { cols, vals } = buildSet(req.body, [
       'id_cliente', 'id_tecnico', 'descricao_problema', 'status',
-      'id_orcamento', 'equipamento', 'numero_serie', 'condicao_entrada'
+      'id_orcamento', 'equipamento', 'numero_serie', 'condicao_entrada', 'status_execucao'
     ]);
     if (!cols.length) return err400(res, 'Nada para atualizar');
 
     await q(`UPDATE ordem_servico SET ${cols.join(', ')} WHERE id_ordem_servico=?`, [...vals, id]);
+
+    // Sincroniza com o orçamento vinculado se existir
+    if (osAtual.id_orcamento) {
+      const camposOrc = {};
+      if (req.body.id_cliente !== undefined) camposOrc.id_cliente = req.body.id_cliente;
+      if (req.body.descricao_problema !== undefined) camposOrc.descricao = req.body.descricao_problema;
+
+      const { cols: colsOrc, vals: valsOrc } = buildSet(camposOrc, ['id_cliente', 'descricao']);
+      if (colsOrc.length) {
+        await q(
+          `UPDATE orcamento SET ${colsOrc.join(', ')} WHERE id_orcamento=?`,
+          [...valsOrc, osAtual.id_orcamento]
+        );
+      }
+    }
 
     // Se mudou o técnico, notifica o novo
     if (req.body.id_tecnico && req.body.id_tecnico !== tecnicoAnterior) {
@@ -215,9 +235,9 @@ router.patch('/:id/recebimento', auth, pTecnico, async (req, res) => {
 
     await q(
       `UPDATE ordem_servico
-       SET equipamento=?, numero_serie=?, condicao_entrada=?,
-           data_recebimento=NOW(), status_execucao=1
-       WHERE id_ordem_servico=?`,
+        SET equipamento=?, numero_serie=?, condicao_entrada=?,
+            data_recebimento=NOW(), status_execucao=1
+        WHERE id_ordem_servico=?`,
       [equipamento, numero_serie || null, condicao_entrada || null, req.params.id]
     );
     ok(res, { message: 'Recebimento registrado' });
@@ -229,9 +249,9 @@ router.get('/:id/diagnosticos', auth, pTecnico, async (req, res) => {
   try {
     res.json(await q(
       `SELECT d.*, f.nome AS nome_tecnico
-       FROM os_diagnostico d
-       LEFT JOIN funcionario f ON f.id_funcionario = d.id_tecnico
-       WHERE d.id_ordem_servico = ? ORDER BY d.created_at ASC`,
+        FROM os_diagnostico d
+        LEFT JOIN funcionario f ON f.id_funcionario = d.id_tecnico
+        WHERE d.id_ordem_servico = ? ORDER BY d.created_at ASC`,
       [req.params.id]
     ));
   } catch (e) { err500(res, e); }
@@ -268,9 +288,9 @@ router.get('/:id/reparos', auth, pTecnico, async (req, res) => {
   try {
     res.json(await q(
       `SELECT r.*, f.nome AS nome_tecnico
-       FROM os_reparo r
-       LEFT JOIN funcionario f ON f.id_funcionario = r.id_tecnico
-       WHERE r.id_ordem_servico = ? ORDER BY r.created_at ASC`,
+        FROM os_reparo r
+        LEFT JOIN funcionario f ON f.id_funcionario = r.id_tecnico
+        WHERE r.id_ordem_servico = ? ORDER BY r.created_at ASC`,
       [req.params.id]
     ));
   } catch (e) { err500(res, e); }
@@ -318,15 +338,15 @@ router.post('/:id/garantia', auth, pTecnico, async (req, res) => {
 
     // Validação do produto: só registrar garantia se produto permite
     const [produtoGarantia] = await q(`
-      SELECT 
-        p.id_produto,
-        p.nome,
-        p.possui_garantia,
-        p.dias_garantia
-      FROM ordem_servico os
-      JOIN produto p ON p.id_produto = os.id_produto
-      WHERE os.id_ordem_servico = ?
-    `, [req.params.id]);
+        SELECT 
+          p.id_produto,
+          p.nome,
+          p.possui_garantia,
+          p.dias_garantia
+        FROM ordem_servico os
+        JOIN produto p ON p.id_produto = os.id_produto
+        WHERE os.id_ordem_servico = ?
+      `, [req.params.id]);
 
     if (!produtoGarantia) {
       return res.status(404).json({ error: 'Produto da ordem de serviço não encontrado' });
@@ -346,7 +366,7 @@ router.post('/:id/garantia', auth, pTecnico, async (req, res) => {
     // Insere usando SQL para calcular a data final
     const r = await q(
       `INSERT INTO os_garantia (id_ordem_servico, dias_garantia, data_inicio, data_fim, observacoes)
-       VALUES (?, ?, DATE(NOW()), DATE_ADD(NOW(), INTERVAL ? DAY), ?)`,
+        VALUES (?, ?, DATE(NOW()), DATE_ADD(NOW(), INTERVAL ? DAY), ?)`,
       [req.params.id, dias, dias, observacoes || null]
     );
 
@@ -355,16 +375,22 @@ router.post('/:id/garantia', auth, pTecnico, async (req, res) => {
 });
 
 // ── EXCLUIR — só admin e gerente ──────────────────────────────────────────────
-router.delete('/:id', auth, pGerente, async (req, res) => {
+router.delete('/:id', auth, pTecnico, async (req, res) => {
   const { id } = req.params;
   try {
-    const exists = await q(`SELECT id_ordem_servico FROM ordem_servico WHERE id_ordem_servico=?`, [id]);
-    if (!exists.length) return err404(res, 'OS não encontrada');
+    const [os] = await q(`SELECT id_ordem_servico, id_orcamento FROM ordem_servico WHERE id_ordem_servico=?`, [id]);
+    if (!os) return err404(res, 'OS não encontrada');
+
     await q(`DELETE FROM ordem_servico WHERE id_ordem_servico=?`, [id]);
+
+    // Apaga o orçamento vinculado se existir
+    if (os.id_orcamento) {
+      await q(`DELETE FROM orcamento WHERE id_orcamento=?`, [os.id_orcamento]);
+    }
+
     ok(res, { message: 'OS deletada com sucesso' });
   } catch (e) { err500(res, e); }
 });
-
 // ── PEGAR OS (técnico se vincula) ────────────────────────────────────────────
 router.patch('/:id/pegar', auth, permissao(4), async (req, res) => {
   try {
@@ -383,5 +409,30 @@ router.patch('/:id/pegar', auth, permissao(4), async (req, res) => {
     ok(res, { message: 'OS vinculada com sucesso' });
   } catch (e) { err500(res, e); }
 });
+
+
+
+// ── CONCLUIR SEM CONSERTO ────────────────────────────────────────────────────
+router.patch('/:id/sem-conserto', auth, pTecnico, async (req, res) => {
+  const { motivo } = req.body;
+  if (!motivo) return err400(res, 'Motivo é obrigatório');
+
+  try {
+    const [os] = await q(`SELECT id_tecnico, status_execucao FROM ordem_servico WHERE id_ordem_servico=?`, [req.params.id]);
+    if (!os) return err404(res, 'OS não encontrada');
+
+    if (req.user.nivel === 4 && Number(os.id_tecnico) !== Number(req.user.id_funcionario))
+      return res.status(403).json({ error: 'Acesso negado' });
+
+    await q(`
+      UPDATE ordem_servico 
+      SET status_execucao = 3, sem_conserto = 1, motivo_sem_conserto = ?, data_conclusao = NOW()
+      WHERE id_ordem_servico = ?
+    `, [motivo, req.params.id]);
+
+    ok(res, { message: 'OS marcada como concluída sem conserto' });
+  } catch (e) { err500(res, e); }
+});
+
 
 module.exports = router;

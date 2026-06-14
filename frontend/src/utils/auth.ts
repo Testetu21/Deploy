@@ -27,3 +27,8 @@ export function getNivel(): number {
 export function isLogado(): boolean {
   return !!getUser();
 }
+
+export function isAdmin(): boolean {
+  const nivel = getNivel();
+  return nivel === 1 || nivel === 2;
+}

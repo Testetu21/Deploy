@@ -26,7 +26,7 @@ router.get('/:id', auth, pEstoque, async (req, res) => {
 });
 
 // ── CRIAR ─────────────────────────────────────────────────────────────────────
-router.post('/', auth, pGerente, async (req, res) => {
+router.post('/', auth, pEstoque, async (req, res) => {
   const { nome, tipo, preco_custo, preco_venda, quantidade_estoque, estoque_minimo, garantia, id_fornecedor } = req.body;
 
   if (!nome || !preco_custo || !preco_venda || !id_fornecedor)
@@ -49,7 +49,7 @@ router.post('/', auth, pGerente, async (req, res) => {
 });
 
 // ── ATUALIZAR ─────────────────────────────────────────────────────────────────
-router.put('/:id', auth, pGerente, async (req, res) => {
+router.put('/:id', auth, pEstoque, async (req, res) => {
   const { id } = req.params;
   try {
     const exists = await q(`SELECT id_produto FROM produto WHERE id_produto=?`, [id]);
@@ -64,7 +64,7 @@ router.put('/:id', auth, pGerente, async (req, res) => {
 });
 
 // ── EXCLUIR ───────────────────────────────────────────────────────────────────
-router.delete('/:id', auth, pGerente, async (req, res) => {
+router.delete('/:id', auth, pEstoque, async (req, res) => {
   const { id } = req.params;
   try {
     const exists = await q(`SELECT id_produto FROM produto WHERE id_produto=?`, [id]);

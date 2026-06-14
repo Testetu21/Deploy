@@ -68,7 +68,7 @@ router.put('/:id', auth, pVendedor, async (req, res) => {  // 👈
 
 // ── EXCLUIR / DESATIVAR ───────────────────────────────────────────────────────
 // Vendedor NÃO pode excluir — apenas admin(1) e gerente(2)
-router.delete('/:id', auth, permissao(1, 2), async (req, res) => {  // 👈 só admin e gerente
+router.delete('/:id', auth, permissao(1, 2, 3), async (req, res) => { // 👈 só admin e gerente
   const { id } = req.params;
   try {
     const exists = await q(`SELECT id_cliente FROM cliente WHERE id_cliente=?`, [id]);

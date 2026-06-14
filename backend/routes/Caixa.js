@@ -1,10 +1,10 @@
-const router   = require('express').Router();
-const auth     = require('../middleware/Auth');
+const router = require('express').Router();
+const auth = require('../middleware/Auth');
 const permissao = require('../middleware/permissao');
-const { q }    = require('../db');
+const { q } = require('../db');
 const { err400, err404, err500, ok } = require('../helpers/Response');
 
-const pCaixa  = permissao(1, 2, 5);
+const pCaixa = permissao(1, 2, 5);
 const pGerente = permissao(1, 2);
 
 const CAIXA_SELECT = `
@@ -74,15 +74,15 @@ router.get('/historico', auth, pCaixa, async (req, res) => {
   let sql = `${CAIXA_SELECT} WHERE 1=1`;
   const params = [];
   if (data_inicio) { sql += ' AND DATE(c.data) >= ?'; params.push(data_inicio); }
-  if (data_fim)    { sql += ' AND DATE(c.data) <= ?'; params.push(data_fim); }
+  if (data_fim) { sql += ' AND DATE(c.data) <= ?'; params.push(data_fim); }
   sql += ' ORDER BY c.data DESC';
   try {
     const rows = await q(sql, params);
     res.json({
-      total_registros:  rows.length,
-      total_entradas:   rows.reduce((s, r) => s + Number(r.total_entradas), 0),
-      total_saidas:     rows.reduce((s, r) => s + Number(r.total_saidas), 0),
-      saldo_total:      rows.reduce((s, r) => s + Number(r.saldo_atual), 0),
+      total_registros: rows.length,
+      total_entradas: rows.reduce((s, r) => s + Number(r.total_entradas), 0),
+      total_saidas: rows.reduce((s, r) => s + Number(r.total_saidas), 0),
+      saldo_total: rows.reduce((s, r) => s + Number(r.saldo_atual), 0),
       registros: rows,
     });
   } catch (e) { err500(res, e); }
@@ -91,9 +91,36 @@ router.get('/historico', auth, pCaixa, async (req, res) => {
 // ── CAIXA ABERTO ATUAL ────────────────────────────────────────────────────────
 router.get('/aberto', auth, pCaixa, async (req, res) => {
   try {
-    const [caixa] = await q(`${CAIXA_SELECT} WHERE c.valor_fechamento IS NULL ORDER BY c.data DESC LIMIT 1`);
+    const [caixa] = await q(
+      `${CAIXA_SELECT} WHERE c.valor_fechamento IS NULL AND c.id_funcionario = ? ORDER BY c.data DESC LIMIT 1`,
+      [req.user.id_funcionario]
+    );
     if (!caixa) return res.json(null);
     res.json({ ...caixa, status: 'aberto' });
+  } catch (e) { err500(res, e); }
+});
+
+// ── TODOS OS CAIXAS ABERTOS ───────────────────────────────────────────────────
+router.get('/abertos/todos', auth, pCaixa, async (req, res) => {
+  try {
+    const caixas = await q(`${CAIXA_SELECT} WHERE c.valor_fechamento IS NULL ORDER BY c.data DESC`);
+    res.json(caixas);
+  } catch (e) { err500(res, e); }
+});
+
+// ── CAIXAS DO FUNCIONÁRIO LOGADO ─────────────────────────────────────────────
+router.get('/meus', auth, pCaixa, async (req, res) => {
+  try {
+    console.log("req.user:", req.user);
+    const funcId = req.user.id_funcionario;
+    console.log("funcId:", funcId);
+    if (!funcId) return err400(res, 'Funcionário não identificado');
+    const caixas = await q(
+      `${CAIXA_SELECT} WHERE c.id_funcionario = ? ORDER BY c.data DESC`,
+      [funcId]
+    );
+    console.log("caixas encontrados:", caixas.length);
+    res.json(caixas);
   } catch (e) { err500(res, e); }
 });
 
@@ -133,10 +160,12 @@ router.post('/', auth, pCaixa, async (req, res) => {
     }
     if (!funcId) return err400(res, 'Funcionário não encontrado para o usuário atual');
 
+    // COLOCA isso:
     const [aberto] = await q(
-      `SELECT id_caixa FROM caixa WHERE valor_fechamento IS NULL ORDER BY data DESC LIMIT 1`
+      `SELECT id_caixa FROM caixa WHERE valor_fechamento IS NULL AND id_funcionario = ? LIMIT 1`,
+      [funcId]
     );
-    if (aberto) return err400(res, 'Já existe um caixa aberto. Feche-o antes de abrir outro.');
+    if (aberto) return err400(res, 'Você já possui um caixa aberto. Feche-o antes de abrir outro.');
 
     const r = await q(
       `INSERT INTO caixa (data, valor_abertura, valor_fechamento, id_funcionario, status)
@@ -170,9 +199,9 @@ router.put('/:id/fechar', auth, pCaixa, async (req, res) => {
     const [caixa] = await q(`${CAIXA_SELECT} WHERE c.id_caixa = ? AND c.valor_fechamento IS NULL`, [req.params.id]);
     if (!caixa) return err404(res, 'Caixa não encontrado ou já está fechado');
 
-    const saldo    = Number(caixa.saldo_atual);
+    const saldo = Number(caixa.saldo_atual);
     const fechamento = Number(valor_fechamento);
-    const diferenca  = Math.abs(fechamento - saldo);
+    const diferenca = Math.abs(fechamento - saldo);
 
     await q(
       `UPDATE caixa SET valor_fechamento=?, observacoes=?, status=0 WHERE id_caixa=?`,

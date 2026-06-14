@@ -2,6 +2,19 @@ require('dotenv').config();
 const express = require('express');
 const morgan  = require('morgan');
 
+const cron = require('node-cron');
+const { rodarBaixaAutomatica } = require('./jobs/baixaAutomatica');
+const { cancelarOrcamentosVencidos } = require('./jobs/cancelarOrcamentosVencidos');
+// Roda todo dia à meia-noite
+cron.schedule('0 0 * * *', () => {
+  rodarBaixaAutomatica();
+   cancelarOrcamentosVencidos();
+});
+
+// Roda uma vez ao iniciar o servidor (para pegar parcelas do dia)
+rodarBaixaAutomatica();
+cancelarOrcamentosVencidos();
+
 const app  = express();
 const PORT = process.env.PORT || 3001;
 

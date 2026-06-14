@@ -3,10 +3,11 @@ const auth     = require('../middleware/Auth');
 const permissao = require('../middleware/permissao');
 const { q, buildSet } = require('../db');
 const pGerente = permissao(1, 2);
+const pLeitura = permissao(1, 2, 3); // vendedor pode listar
 const { err400, err404, err500, ok } = require('../helpers/Response');
 
 // ── LISTAR ────────────────────────────────────────────────────────────────────
-router.get('/', auth, pGerente, async (req, res) => {
+router.get('/', auth, pLeitura, async (req, res) => {
   try {
     res.json(await q(`SELECT id_fornecedor,nome,telefone,email,endereco FROM fornecedor ORDER BY nome`));
   } catch (e) { err500(res, e); }

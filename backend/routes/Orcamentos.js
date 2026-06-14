@@ -34,10 +34,10 @@ async function criarOSdoOrcamento(orc) {
        (id_cliente, id_tecnico, descricao_problema, status, status_execucao, id_orcamento, data_abertura)
      VALUES (?, ?, ?, 0, 0, ?, NOW())`,
     [
-      orc.id_cliente,
+      orc.id_cliente || null,  // aceita null
       orc.id_tecnico || null,
-      orc.descricao  || 'Gerado a partir de orçamento',
-      orc.id_orcamento, // 👈 vincula sempre
+      orc.descricao || 'Gerado a partir de orçamento',
+      orc.id_orcamento,
     ]
   );
 
@@ -120,16 +120,16 @@ router.get('/:id', auth, pTecnico, async (req, res) => {
 // ── CRIAR — gerente, admin e técnico ─────────────────────────────────────────
 router.post('/', auth, pTecnico, async (req, res) => {
   const { id_cliente, descricao, valor_total, validade, status, tipo } = req.body;
-  if (!id_cliente || !valor_total || !validade)
-    return err400(res, 'Campos obrigatórios: id_cliente, valor_total, validade');
+  if (!valor_total || !validade)
+  return err400(res, 'Campos obrigatórios: valor_total, validade');
 
   try {
     const statusDb = statusToDb(status);
     const r = await q(
-      `INSERT INTO orcamento (id_cliente, descricao, valor_total, validade, status, tipo)
-       VALUES (?,?,?,?,?,?)`,
-      [id_cliente, descricao || null, valor_total, validade, statusDb, tipo || 'normal']
-    );
+  `INSERT INTO orcamento (id_cliente, descricao, valor_total, validade, status, tipo)
+   VALUES (?,?,?,?,?,?)`,
+  [id_cliente || null, descricao || null, valor_total, validade, statusDb, tipo || 'normal']
+);
     const id_orcamento = r.insertId;
 
     // Se já criado como aceito e tipo OS → cria OS imediatamente
@@ -145,17 +145,11 @@ router.post('/', auth, pTecnico, async (req, res) => {
   }
 });
 
-// ── ATUALIZAR — só gerente e admin ───────────────────────────────────────────
-router.put('/:id', auth, pGerente, async (req, res) => {
+router.put('/:id', auth, pTecnico, async (req, res) => {
   const { id } = req.params;
   try {
     const [orc] = await q(`SELECT * FROM orcamento WHERE id_orcamento=?`, [id]);
     if (!orc) return err404(res, 'Orçamento não encontrado');
-
-    // 👇 ADICIONE ISSO
-    if (statusToText(orc.status) === 'aceito') {
-      return err400(res, 'Orçamento aceito não pode ser editado');
-    }
 
     const payload = { ...req.body };
     if (payload.status !== undefined) payload.status = statusToDb(payload.status);
@@ -165,15 +159,29 @@ router.put('/:id', auth, pGerente, async (req, res) => {
 
     await q(`UPDATE orcamento SET ${cols.join(', ')} WHERE id_orcamento=?`, [...vals, id]);
 
-    const novoStatus = req.body.status !== undefined ? req.body.status : statusToText(orc.status);
-    const novoTipo   = req.body.tipo   !== undefined ? req.body.tipo   : orc.tipo;
-    const isOS       = novoTipo === 'os' || Number(novoTipo) === 1;
+// Sincroniza com a OS vinculada se existir
+const [osVinculada] = await q(
+  `SELECT id_ordem_servico FROM ordem_servico WHERE id_orcamento=?`, [id]
+);
+if (osVinculada) {
+  const camposOS = {};
+  if (payload.id_cliente !== undefined) camposOS.id_cliente = payload.id_cliente;
+  if (payload.descricao !== undefined) camposOS.descricao_problema = payload.descricao;
+  
+  const { cols: colsOS, vals: valsOS } = buildSet(camposOS, ['id_cliente', 'descricao_problema']);
+  if (colsOS.length) {
+    await q(
+      `UPDATE ordem_servico SET ${colsOS.join(', ')} WHERE id_ordem_servico=?`,
+      [...valsOS, osVinculada.id_ordem_servico]
+    );
+  }
+}
 
-    // Cria OS se virou aceito e é tipo OS — e ainda não tem OS vinculada
-    if (isOS && (novoStatus === 'aceito' || novoStatus === 1)) {
+    // Se virou aceito e ainda não tem OS vinculada → cria OS
+    const novoStatus = req.body.status;
+    if (novoStatus === 'aceito' && statusToText(orc.status) !== 'aceito') {
       const existing = await q(
-        `SELECT id_ordem_servico FROM ordem_servico WHERE id_orcamento=?`,
-        [id]
+        `SELECT id_ordem_servico FROM ordem_servico WHERE id_orcamento=?`, [id]
       );
       if (!existing.length) {
         await criarOSdoOrcamento({ ...orc, id_orcamento: Number(id) });
@@ -187,22 +195,26 @@ router.put('/:id', auth, pGerente, async (req, res) => {
   }
 });
 
-// ── ACEITAR ───────────────────────────────────────────────────────────────────
-router.put('/:id/aceitar', auth, pGerente, async (req, res) => {
+  // ── ACEITAR ───────────────────────────────────────────────────────────────────
+  router.put('/:id/aceitar', auth, pTecnico, async (req, res) => {
   try {
     const [orc] = await q(`SELECT * FROM orcamento WHERE id_orcamento=?`, [req.params.id]);
+    console.log('Orçamento encontrado:', orc);
+    
     if (!orc) return err404(res, 'Orçamento não encontrado');
     if (statusToText(orc.status) === 'aceito') return err400(res, 'Orçamento já foi aceito');
 
     await q(`UPDATE orcamento SET status='aceito' WHERE id_orcamento=?`, [req.params.id]);
 
-    const isOS = orc.tipo === 'os' || Number(orc.tipo) === 1;
-    if (isOS) {
-      await criarOSdoOrcamento(orc);
-    }
+    console.log('Criando OS para orçamento:', orc.id_orcamento);
+    const idOS = await criarOSdoOrcamento(orc);
+    console.log('OS criada:', idOS);
 
     ok(res, { message: 'Orçamento aceito com sucesso' });
-  } catch (e) { err500(res, e); }
+  } catch (e) { 
+    console.error('ERRO ao aceitar orçamento:', e);
+    err500(res, e); 
+  }
 });
 
 // ── CANCELAR ──────────────────────────────────────────────────────────────────
@@ -214,19 +226,13 @@ router.put('/:id/cancelar', auth, pGerente, async (req, res) => {
 });
 
 // ── EXCLUIR — só gerente e admin ─────────────────────────────────────────────
-router.delete('/:id', auth, pGerente, async (req, res) => {
+router.delete('/:id', auth, pTecnico, async (req, res) => {
   try {
     const exists = await q(`SELECT id_orcamento FROM orcamento WHERE id_orcamento=?`, [req.params.id]);
     if (!exists.length) return err404(res, 'Orçamento não encontrado');
 
-    // 👇 ADICIONE ISSO
-    const osVinculada = await q(
-      `SELECT id_ordem_servico FROM ordem_servico WHERE id_orcamento=?`,
-      [req.params.id]
-    );
-    if (osVinculada.length) {
-      return err400(res, `Exclua primeiro a OS #${osVinculada[0].id_ordem_servico} vinculada a este orçamento`);
-    }
+    // Apaga a OS vinculada se existir
+    await q(`DELETE FROM ordem_servico WHERE id_orcamento=?`, [req.params.id]);
 
     await q(`DELETE FROM orcamento WHERE id_orcamento=?`, [req.params.id]);
     ok(res, { message: 'Orçamento deletado com sucesso' });

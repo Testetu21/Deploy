@@ -1,1 +1,1 @@
-export * from "../../../../components/ui/icons";
+export * from "../../../components/ui/icons";

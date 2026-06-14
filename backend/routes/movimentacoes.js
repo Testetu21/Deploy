@@ -51,4 +51,26 @@ router.get('/caixa/:id', auth, pCaixa, async (req, res) => {
   } catch (e) { err500(res, e); }
 });
 
+// ── MOVIMENTAÇÕES DO DIA (todos os caixas) ───────────────────────────────────
+router.get('/hoje', auth, pCaixa, async (req, res) => {
+  try {
+    const movs = await q(`
+      SELECT m.* FROM movimentacao_caixa m
+      INNER JOIN caixa c ON c.id_caixa = m.id_caixa
+      WHERE DATE(m.data) = CURDATE()
+      ORDER BY m.data DESC
+    `);
+
+    const totais = movs.reduce((acc, m) => {
+      if (m.tipo === 'entrada') acc.entradas += Number(m.valor);
+      else acc.saidas += Number(m.valor);
+      return acc;
+    }, { entradas: 0, saidas: 0 });
+
+    totais.saldo = totais.entradas - totais.saidas;
+
+    res.json({ movimentacoes: movs, totais });
+  } catch (e) { err500(res, e); }
+});
+
 module.exports = router;
