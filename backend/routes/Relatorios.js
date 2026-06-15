@@ -22,13 +22,13 @@ router.get('/:tipo', auth, pAdmin, async (req, res) => {
         const dataFim    = (data_fim    || '').trim();
 
         const rows = await q(
-          `SELECT DATE_FORMAT(data_venda, '%d/%m/%Y') AS periodo,
+          `SELECT DATE_FORMAT(DATE(data_venda), '%d/%m/%Y') AS periodo,
                   COUNT(*) AS quantidade,
                   COALESCE(SUM(valor_total), 0) AS receita
            FROM venda
            WHERE DATE(data_venda) BETWEEN ? AND ?
            GROUP BY DATE(data_venda)
-           ORDER BY data_venda DESC`,
+           ORDER BY DATE(data_venda) DESC`,
           [dataInicio, dataFim]
         );
 
