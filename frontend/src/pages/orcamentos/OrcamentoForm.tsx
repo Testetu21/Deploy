@@ -188,14 +188,14 @@ export default function OrcamentoForm() {
             )}
 
             {/* DESCRIÇÃO */}
-            <label>Descrição</label>
+            <label>Descrição *</label>
             <textarea
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
             />
 
             {/* VALOR */}
-            <label>Valor</label>
+            <label>Valor *</label>
             <input
               type="text"
               value={valor}
@@ -205,7 +205,7 @@ export default function OrcamentoForm() {
             />
 
             {/* VALIDADE */}
-            <label>Validade</label>
+            <label>Validade *</label>
             <input
               type="date"
               value={validade}

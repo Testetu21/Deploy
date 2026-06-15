@@ -618,7 +618,7 @@ export default function Loja() {
           <form className="lj-news-form" onSubmit={e => { e.preventDefault(); alert("Inscrito com sucesso!"); }}>
             <input
               type="email"
-              placeholder="Seu melhor e-mail"
+              placeholder="Seu melhor e-mail *"
               required
               onInvalid={(e) => e.currentTarget.setCustomValidity("Informe um e-mail válido")}
               onInput={(e) => e.currentTarget.setCustomValidity("")}

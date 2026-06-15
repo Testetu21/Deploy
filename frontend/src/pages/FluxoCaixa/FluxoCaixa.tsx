@@ -76,7 +76,8 @@ export default function FluxoCaixa() {
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { toast, show: showToast } = useToast();
-  const [caixaSelecionado, setCaixaSelecionado] = useState<number | null>(null);
+  const [caixaSelecionado, setCaixaSelecionado] = useState<string>("todos");
+  const [dataSelecionada, setDataSelecionada] = useState("");
 
   async function fetchCaixas() {
     try {
@@ -112,34 +113,24 @@ export default function FluxoCaixa() {
     fetchCaixas();
   }, []);
 
-  const stats = useMemo(() => {
-    const caixasAbertos = caixas.filter(
-      (c) => c.valor_fechamento === null,
-    ).length;
-    const caixasFechados = caixas.filter(
-      (c) => c.valor_fechamento !== null,
-    ).length;
-    const saldoTotal = caixas.reduce((sum, c) => sum + c.saldo, 0);
-    const aberturaTotal = caixas.reduce((sum, c) => sum + c.valor_abertura, 0);
 
-    return {
-      total: caixas.length,
-      abertos: caixasAbertos,
-      fechados: caixasFechados,
-      saldoTotal,
-      aberturaTotal,
-    };
-  }, [caixas]);
 
   // POR isso:
   const hasOpenCaixa = caixas.some(
     c => c.valor_fechamento === null && c.id_funcionario === user?.id_funcionario
   );
 
+  function mesmoDia(dataCaixa?: string, dataFiltro?: string) {
+    if (!dataFiltro) return true;
+    if (!dataCaixa) return false;
+    return String(dataCaixa).slice(0, 10) === dataFiltro;
+  }
+
   const lista = useMemo(
     () =>
       caixas
-        .filter(c => caixaSelecionado === null || c.id_caixa === caixaSelecionado)
+        .filter(c => caixaSelecionado === "todos" || String(c.id_caixa) === caixaSelecionado)
+        .filter(c => mesmoDia(c.data, dataSelecionada))
         .filter((c) => {
           const q = search.toLowerCase();
           return (
@@ -149,8 +140,33 @@ export default function FluxoCaixa() {
             false
           );
         }),
-    [caixas, search, caixaSelecionado],
+    [caixas, search, caixaSelecionado, dataSelecionada],
   );
+
+  const stats = useMemo(() => {
+    const caixasAbertos = lista.filter(
+      (c) => c.valor_fechamento === null,
+    ).length;
+    const caixasFechados = lista.filter(
+      (c) => c.valor_fechamento !== null,
+    ).length;
+    const saldoTotal = lista.reduce((sum, c) => sum + c.saldo, 0);
+    const aberturaTotal = lista.reduce((sum, c) => sum + c.valor_abertura, 0);
+
+    return {
+      total: lista.length,
+      abertos: caixasAbertos,
+      fechados: caixasFechados,
+      saldoTotal,
+      aberturaTotal,
+    };
+  }, [lista]);
+
+  function limparFiltrosFluxo() {
+    setSearch("");
+    setDataSelecionada("");
+    setCaixaSelecionado("todos");
+  }
 
   async function handleDelete() {
     if (!confirmId) return;
@@ -191,7 +207,7 @@ export default function FluxoCaixa() {
       "ID Funcionário",
       "Funcionário",
     ];
-    const rows = caixas.map((c) => [
+    const rows = lista.map((c) => [
       c.id_caixa,
       formatDate(c.data),
       formatCurrency(c.valor_abertura),
@@ -239,37 +255,6 @@ export default function FluxoCaixa() {
           </div>
         </header>
 
-        {/* Cards de seleção de caixa — só admin/gerente */}
-        {!isCaixa && caixas.length > 0 && (
-          <div style={{ padding: "16px 24px 0", display: "flex", gap: 12, flexWrap: "wrap" }}>
-            {caixas.map(c => (
-              <button
-                key={c.id_caixa}
-                onClick={() => setCaixaSelecionado(caixaSelecionado === c.id_caixa ? null : c.id_caixa)}
-                style={{
-                  padding: "10px 18px",
-                  borderRadius: 10,
-                  border: "2px solid",
-                  borderColor: caixaSelecionado === c.id_caixa ? "#6366f1" : "#e4e4e7",
-                  background: caixaSelecionado === c.id_caixa ? "#eef2ff" : "#fff",
-                  color: caixaSelecionado === c.id_caixa ? "#6366f1" : "#667085",
-                  cursor: "pointer",
-                  fontSize: 13,
-                  textAlign: "left",
-                  transition: "all 0.15s",
-                }}
-              >
-                <div style={{ fontWeight: 600 }}>
-                  Caixa #{c.id_caixa} — {c.funcionario_nome}
-                </div>
-                <div style={{ fontSize: 11, marginTop: 2, color: caixaSelecionado === c.id_caixa ? "#6366f1" : "#aaa" }}>
-                  {formatDate(c.data)} · {c.valor_fechamento === null ? "Aberto" : "Fechado"}
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-
         <div className="p-content">
           <div className="stats-row">
             <div className="stat-card">
@@ -311,9 +296,40 @@ export default function FluxoCaixa() {
           </div>
 
           <div className="data-panel">
-            <div className="dp-header">
-              <h3>Registros de Fluxo de Caixa</h3>
-              <div className="dp-header-right">
+            <div className="dp-header fluxo-dp-header">
+              <div>
+                <h3>Registros de Fluxo de Caixa</h3>
+                <p className="fluxo-filter-subtitle">Use os filtros para consultar um caixa e um dia específico.</p>
+              </div>
+              <div className="dp-header-right fluxo-filter-bar">
+                <div className="fluxo-filter-group">
+                  <label htmlFor="fluxo-data">Dia</label>
+                  <input
+                    id="fluxo-data"
+                    type="date"
+                    value={dataSelecionada}
+                    onChange={(e) => setDataSelecionada(e.target.value)}
+                  />
+                </div>
+
+                {!isCaixa && (
+                  <div className="fluxo-filter-group">
+                    <label htmlFor="fluxo-caixa">Caixa / funcionário</label>
+                    <select
+                      id="fluxo-caixa"
+                      value={caixaSelecionado}
+                      onChange={(e) => setCaixaSelecionado(e.target.value)}
+                    >
+                      <option value="todos">Todos os caixas</option>
+                      {caixas.map((c) => (
+                        <option key={c.id_caixa} value={String(c.id_caixa)}>
+                          Caixa #{c.id_caixa} — {c.funcionario_nome || `ID: ${c.id_funcionario}`} — {formatDate(c.data)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div className="dp-search">
                   <IconSearch />
                   <input
@@ -323,6 +339,9 @@ export default function FluxoCaixa() {
                     placeholder="Buscar por data, funcionário ou ID..."
                   />
                 </div>
+                <button className="btn btn-secondary fluxo-clear-btn" type="button" onClick={limparFiltrosFluxo}>
+                  Limpar filtros
+                </button>
               </div>
             </div>
 

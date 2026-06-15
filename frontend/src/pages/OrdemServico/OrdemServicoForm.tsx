@@ -301,12 +301,12 @@ export default function OrdemServicoForm() {
                 placeholder="Descreva o problema relatado pelo cliente..."
               />
 
-              <label>Equipamento</label>
+              <label>Equipamento *</label>
               <input
                 type="text"
                 value={equipamento}
                 onChange={e => setEquipamento(e.target.value)}
-                placeholder="Ex: Notebook Dell Inspiron (opcional)"
+                placeholder="Ex: Notebook Dell Inspiron"
               />
 
               <div style={{ display: "flex", gap: 10, marginTop: 20 }}>

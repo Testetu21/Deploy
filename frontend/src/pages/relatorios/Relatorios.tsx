@@ -1,9 +1,9 @@
-import "../../utils/toast";
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sidebar } from "../../components/sidebar";
 import "../../styles/data-panel.css";
 import "./Relatorios.css";
 import API_URL from "../../utils/api";
+import { showToast } from "../../utils/toast";
 
 const API = `${API_URL}/api`;
 
@@ -64,6 +64,246 @@ function fetchWithAuth(url: string, options: RequestInit = {}) {
       ...options.headers,
     },
   });
+}
+
+function normalizarTextoPDF(valor: unknown): string {
+  return String(valor ?? "-")
+    .normalize("NFC")
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, "-")
+    .replace(/[•]/g, "-")
+    .replace(/[€]/g, "EUR")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, " ")
+    .replace(/[^\u0020-\u00FF]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function escaparPDF(texto: string): string {
+  return normalizarTextoPDF(texto)
+    .replace(/\\/g, "\\\\")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)");
+}
+
+function textoParaBytesLatin1(texto: string): Uint8Array {
+  const bytes = new Uint8Array(texto.length);
+  for (let i = 0; i < texto.length; i += 1) {
+    bytes[i] = texto.charCodeAt(i) & 0xff;
+  }
+  return bytes;
+}
+
+function quebrarLinha(texto: string, maxCaracteres: number): string[] {
+  const palavras = normalizarTextoPDF(texto).split(" ").filter(Boolean);
+  const linhas: string[] = [];
+  let atual = "";
+
+  palavras.forEach((palavra) => {
+    const candidata = atual ? `${atual} ${palavra}` : palavra;
+    if (candidata.length > maxCaracteres && atual) {
+      linhas.push(atual);
+      atual = palavra;
+    } else {
+      atual = candidata;
+    }
+  });
+
+  if (atual) linhas.push(atual);
+  return linhas.length ? linhas : ["-"];
+}
+
+function criarPDFRelatorio(titulo: string, descricao: string, resumo: string, headers: string[], rows: string[][]): Blob {
+  const pageWidth = 595;
+  const pageHeight = 842;
+  const margin = 36;
+  const contentWidth = pageWidth - margin * 2;
+  const footerHeight = 34;
+  const maxLinesPerCell = 2;
+  const paginas: string[][] = [];
+  let comandos: string[] = [];
+  let y = pageHeight - margin;
+
+  const relatorio = normalizarTextoPDF(titulo || "Relatório");
+  const dataGeracao = new Date().toLocaleString("pt-BR");
+
+  const cor = (r: number, g: number, b: number) => `${r} ${g} ${b}`;
+
+  const retangulo = (x: number, yRect: number, largura: number, altura: number, preenchimento: string, contorno?: string) => {
+    comandos.push("q");
+    comandos.push(`${preenchimento} rg`);
+    if (contorno) comandos.push(`${contorno} RG`);
+    comandos.push(`${x} ${yRect} ${largura} ${altura} re`);
+    comandos.push(contorno ? "B" : "f");
+    comandos.push("Q");
+  };
+
+  const linha = (x1: number, y1: number, x2: number, y2: number, largura = 0.6, stroke = cor(0.86, 0.89, 0.94)) => {
+    comandos.push("q", `${stroke} RG`, `${largura} w`, `${x1} ${y1} m`, `${x2} ${y2} l`, "S", "Q");
+  };
+
+  const texto = (x: number, yTexto: number, conteudo: string, tamanho = 10, fonte: "F1" | "F2" = "F1", preenchimento = cor(0.16, 0.20, 0.27)) => {
+    comandos.push(
+      "BT",
+      `${preenchimento} rg`,
+      `/${fonte} ${tamanho} Tf`,
+      `1 0 0 1 ${x} ${yTexto} Tm`,
+      `(${escaparPDF(normalizarTextoPDF(conteudo))}) Tj`,
+      "ET"
+    );
+  };
+
+  const textoDireita = (xDireita: number, yTexto: number, conteudo: string, tamanho = 10, fonte: "F1" | "F2" = "F1", preenchimento = cor(0.35, 0.40, 0.49)) => {
+    const textoLimpo = normalizarTextoPDF(conteudo);
+    const larguraAproximada = textoLimpo.length * tamanho * 0.52;
+    texto(xDireita - larguraAproximada, yTexto, textoLimpo, tamanho, fonte, preenchimento);
+  };
+
+  const desenharCabecalho = () => {
+    retangulo(0, pageHeight - 92, pageWidth, 92, cor(0.08, 0.13, 0.22));
+    retangulo(margin, pageHeight - 70, 34, 34, cor(0.18, 0.42, 0.78));
+    texto(margin + 10, pageHeight - 58, "R", 16, "F2", cor(1, 1, 1));
+    texto(margin + 46, pageHeight - 47, "Relatório gerencial", 10, "F1", cor(0.80, 0.86, 0.95));
+    texto(margin + 46, pageHeight - 68, relatorio, 18, "F2", cor(1, 1, 1));
+    textoDireita(pageWidth - margin, pageHeight - 47, `Gerado em ${dataGeracao}`, 8, "F1", cor(0.80, 0.86, 0.95));
+    y = pageHeight - 118;
+  };
+
+  const desenharRodape = (paginaAtual: number) => {
+    linha(margin, footerHeight + 8, pageWidth - margin, footerHeight + 8, 0.5, cor(0.88, 0.91, 0.95));
+    texto(margin, footerHeight - 8, "Sistema de gestão - documento gerado automaticamente", 8, "F1", cor(0.45, 0.50, 0.58));
+    textoDireita(pageWidth - margin, footerHeight - 8, `Página ${paginaAtual}`, 8, "F1", cor(0.45, 0.50, 0.58));
+  };
+
+  const iniciarPagina = () => {
+    comandos = [];
+    desenharCabecalho();
+  };
+
+  const fecharPagina = () => {
+    desenharRodape(paginas.length + 1);
+    paginas.push(comandos);
+  };
+
+  const novaPagina = () => {
+    fecharPagina();
+    iniciarPagina();
+  };
+
+  iniciarPagina();
+
+  retangulo(margin, y - 52, contentWidth, 62, cor(0.96, 0.98, 1), cor(0.86, 0.90, 0.96));
+  texto(margin + 14, y - 8, "Descrição", 10, "F2", cor(0.18, 0.42, 0.78));
+  let yDescricao = y - 25;
+  quebrarLinha(descricao, 100).slice(0, 2).forEach((linhaDescricao) => {
+    texto(margin + 14, yDescricao, linhaDescricao, 9, "F1", cor(0.28, 0.33, 0.41));
+    yDescricao -= 12;
+  });
+  y -= 84;
+
+  const totalRegistros = rows.length;
+  const larguraCard = (contentWidth - 16) / 2;
+  retangulo(margin, y - 42, larguraCard, 48, cor(1, 1, 1), cor(0.86, 0.90, 0.96));
+  texto(margin + 14, y - 10, "Total de registros", 9, "F1", cor(0.45, 0.50, 0.58));
+  texto(margin + 14, y - 30, String(totalRegistros), 17, "F2", cor(0.08, 0.13, 0.22));
+
+  retangulo(margin + larguraCard + 16, y - 42, larguraCard, 48, cor(1, 1, 1), cor(0.86, 0.90, 0.96));
+  texto(margin + larguraCard + 30, y - 10, "Resumo", 9, "F1", cor(0.45, 0.50, 0.58));
+  quebrarLinha(resumo, 46).slice(0, 2).forEach((linhaResumo, indice) => {
+    texto(margin + larguraCard + 30, y - 29 - indice * 11, linhaResumo, 8.5, "F1", cor(0.20, 0.25, 0.33));
+  });
+  y -= 74;
+
+  const colunas = headers.length || 1;
+  const colWidth = contentWidth / colunas;
+  const charsPorColuna = Math.max(8, Math.floor(colWidth / 5.2));
+
+  const desenharLinhaTabela = (valores: string[], tipo: "header" | "normal" | "empty" = "normal", indiceLinha = 0) => {
+    const dados = headers.length ? valores : [valores[0] ?? "-"];
+    const linhasPorCelula = Array.from({ length: colunas }, (_, index) => quebrarLinha(dados[index] ?? "-", charsPorColuna).slice(0, maxLinesPerCell));
+    const altura = Math.max(...linhasPorCelula.map((linhas) => linhas.length)) * 11 + 14;
+
+    if (y - altura < footerHeight + 28) novaPagina();
+
+    const fundo = tipo === "header" ? cor(0.18, 0.42, 0.78) : indiceLinha % 2 === 0 ? cor(1, 1, 1) : cor(0.97, 0.98, 1);
+    const borda = tipo === "header" ? cor(0.18, 0.42, 0.78) : cor(0.88, 0.91, 0.95);
+    retangulo(margin, y - altura + 4, contentWidth, altura, fundo, borda);
+
+    linhasPorCelula.forEach((linhas, coluna) => {
+      const x = margin + coluna * colWidth + 8;
+      if (coluna > 0) linha(margin + coluna * colWidth, y - altura + 4, margin + coluna * colWidth, y + 4, 0.4, tipo === "header" ? cor(0.40, 0.58, 0.84) : cor(0.88, 0.91, 0.95));
+      linhas.forEach((linhaTexto, indice) => {
+        texto(
+          x,
+          y - 10 - indice * 11,
+          linhaTexto,
+          tipo === "header" ? 8.5 : 8,
+          tipo === "header" ? "F2" : "F1",
+          tipo === "header" ? cor(1, 1, 1) : cor(0.20, 0.25, 0.33)
+        );
+      });
+    });
+
+    y -= altura;
+  };
+
+  texto(margin, y, "Detalhamento", 12, "F2", cor(0.08, 0.13, 0.22));
+  y -= 22;
+  desenharLinhaTabela(headers.length ? headers : ["Dados"], "header");
+
+  if (rows.length) {
+    rows.forEach((row, indice) => desenharLinhaTabela(row, "normal", indice));
+  } else {
+    desenharLinhaTabela(["Nenhum dado disponível para este relatório."], "empty", 0);
+  }
+
+  fecharPagina();
+
+  const objetos: string[] = [];
+  const pageObjectIds: number[] = [];
+
+  objetos.push("1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj");
+  objetos.push("");
+  objetos.push("3 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >> endobj");
+  objetos.push("4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >> endobj");
+
+  paginas.forEach((pagina) => {
+    const pageId = objetos.length + 1;
+    const contentId = objetos.length + 2;
+    const stream = pagina.join("\n");
+    pageObjectIds.push(pageId);
+    objetos.push(`${pageId} 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentId} 0 R >> endobj`);
+    objetos.push(`${contentId} 0 obj << /Length ${stream.length} >> stream\n${stream}\nendstream endobj`);
+  });
+
+  objetos[1] = `2 0 obj << /Type /Pages /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pageObjectIds.length} >> endobj`;
+
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  objetos.forEach((objeto) => {
+    offsets.push(pdf.length);
+    pdf += `${objeto}\n`;
+  });
+  const xref = pdf.length;
+  pdf += `xref\n0 ${objetos.length + 1}\n0000000000 65535 f \n`;
+  offsets.slice(1).forEach((offset) => {
+    pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+  });
+  pdf += `trailer << /Size ${objetos.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+
+  return new Blob([textoParaBytesLatin1(pdf)], { type: "application/pdf" });
+}
+
+function baixarArquivo(blob: Blob, nomeArquivo: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = nomeArquivo;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 // ── SVG Icons ────────────────────────────────────────────────────────────────
@@ -153,120 +393,30 @@ export default function Relatorios() {
 
   function exportarPDF() {
     if (!activeReportDef) {
-      alert("Selecione um relatório antes de exportar.");
+      showToast("Selecione um relatório antes de exportar.", "warning");
       return;
     }
 
-    const janela = window.open("", "_blank");
-
-    if (!janela) {
-      alert("Não foi possível abrir a janela de impressão.");
+    if (loading) {
+      showToast("Aguarde o relatório terminar de carregar.", "info");
       return;
     }
 
-    const linhas = reportData.rows
-      .map((row) => `
-        <tr>
-          ${row.map((cell) => `<td>${cell}</td>`).join("")}
-        </tr>
-      `)
-      .join("");
-
-    const cabecalho = reportData.headers
-      .map((header) => `<th>${header}</th>`)
-      .join("");
-
-    janela.document.write(`
-      <!DOCTYPE html>
-      <html lang="pt-BR">
-        <head>
-          <meta charset="UTF-8" />
-          <title>${activeReportDef.label}</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              padding: 24px;
-              color: #111827;
-            }
-
-            h1 {
-              font-size: 22px;
-              margin-bottom: 4px;
-            }
-
-            .subtitle {
-              color: #6b7280;
-              margin-bottom: 20px;
-            }
-
-            .summary {
-              background: #f3f4f6;
-              border: 1px solid #e5e7eb;
-              padding: 12px;
-              border-radius: 8px;
-              margin-bottom: 20px;
-            }
-
-            table {
-              width: 100%;
-              border-collapse: collapse;
-            }
-
-            th, td {
-              border: 1px solid #d1d5db;
-              padding: 8px;
-              font-size: 12px;
-              text-align: left;
-            }
-
-            th {
-              background: #f9fafb;
-            }
-
-            .footer {
-              margin-top: 24px;
-              font-size: 11px;
-              color: #6b7280;
-            }
-
-            @media print {
-              button {
-                display: none;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <h1>${activeReportDef.label}</h1>
-          <p class="subtitle">${activeReportDef.description}</p>
-
-          <div class="summary">
-            ${reportData.summary}
-          </div>
-
-          <table>
-            <thead>
-              <tr>${cabecalho}</tr>
-            </thead>
-            <tbody>
-              ${linhas || `<tr><td colspan="${reportData.headers.length || 1}">Nenhum dado disponível.</td></tr>`}
-            </tbody>
-          </table>
-
-          <div class="footer">
-            Relatório gerado em ${new Date().toLocaleString("pt-BR")}
-          </div>
-
-          <script>
-            window.onload = function () {
-              window.print();
-            };
-          </script>
-        </body>
-      </html>
-    `);
-
-    janela.document.close();
+    try {
+      const pdf = criarPDFRelatorio(
+        activeReportDef.label,
+        activeReportDef.description,
+        reportData.summary,
+        reportData.headers,
+        reportData.rows
+      );
+      const data = new Date().toISOString().slice(0, 10);
+      baixarArquivo(pdf, `relatorio-${activeReport}-${data}.pdf`);
+      showToast("PDF exportado com sucesso.", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Não foi possível exportar o PDF.", "error");
+    }
   }
 
   return (
@@ -334,7 +484,7 @@ export default function Relatorios() {
                   type="button"
                   className="btn-primary"
                   onClick={exportarPDF}
-                  disabled={loading || !reportData.rows.length}
+                  disabled={loading || !activeReportDef}
                 >
                   Exportar PDF
                 </button>

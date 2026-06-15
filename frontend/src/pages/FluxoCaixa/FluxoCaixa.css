@@ -286,3 +286,81 @@ html, body, #root { overflow-x: hidden; max-width: 100vw; }
     font-size: 11px !important;
   }
 }
+
+/* Filtros do Fluxo de Caixa */
+.fluxo-dp-header {
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.fluxo-filter-subtitle {
+  margin-top: 4px;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.fluxo-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: auto;
+}
+
+.fluxo-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.fluxo-filter-group label {
+  color: #344054;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.fluxo-filter-group input,
+.fluxo-filter-group select {
+  height: 40px;
+  border: 1px solid rgba(0,0,0,.12);
+  border-radius: 10px;
+  background: #fff;
+  color: #101828;
+  font: inherit;
+  font-size: 13px;
+  padding: 0 12px;
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.fluxo-filter-group select {
+  min-width: 260px;
+}
+
+.fluxo-filter-group input:focus,
+.fluxo-filter-group select:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, .14);
+}
+
+.fluxo-clear-btn {
+  height: 40px;
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .fluxo-filter-bar {
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .fluxo-filter-group,
+  .fluxo-filter-group select,
+  .fluxo-clear-btn {
+    width: 100%;
+    min-width: 0;
+  }
+}

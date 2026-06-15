@@ -335,7 +335,7 @@ export default function OrdemServicoDetalhes() {
               {aba === "diagnostico" && (
                 <div className="osd-tab-content">
                   <form onSubmit={salvarDiagnostico} className="osd-form">
-                    <label>Novo diagnóstico</label>
+                    <label>Novo diagnóstico *</label>
                     <textarea value={diagDesc} onChange={e => setDiagDesc(e.target.value)} placeholder="Descreva o diagnóstico realizado..." rows={4} />
                     <button className="btn btn-primary" disabled={saving}>{saving ? "Registrando..." : "Registrar diagnóstico"}</button>
                   </form>
@@ -357,7 +357,7 @@ export default function OrdemServicoDetalhes() {
               {aba === "reparo" && (
                 <div className="osd-tab-content">
                   <form onSubmit={salvarReparo} className="osd-form">
-                    <label>Reparo executado</label>
+                    <label>Reparo executado *</label>
                     <textarea value={reparoDesc} onChange={e => setReparoDesc(e.target.value)} placeholder="Descreva o reparo realizado..." rows={4} />
                     <label>Peças utilizadas</label>
                     <textarea value={reparoPecas} onChange={e => setReparoPecas(e.target.value)} placeholder="Liste as peças utilizadas (opcional)..." rows={2} />
@@ -398,7 +398,7 @@ export default function OrdemServicoDetalhes() {
                     </div>
                   ) : (
                     <form onSubmit={salvarGarantia} className="osd-form">
-                      <label>Dias de garantia</label>
+                      <label>Dias de garantia *</label>
                       <input type="number" min="1" value={garDias} onChange={e => setGarDias(e.target.value)} placeholder="Ex: 90" disabled={os.status_execucao !== 3} />
                       <label>Observações</label>
                       <textarea value={garObs} onChange={e => setGarObs(e.target.value)} placeholder="Condições da garantia (opcional)..." rows={3} disabled={os.status_execucao !== 3} />

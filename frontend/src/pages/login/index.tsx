@@ -109,7 +109,7 @@ export function Login() {
 
           {/* Usuário */}
           <div className="label">
-            <label>Usuário</label>
+            <label>Usuário *</label>
           </div>
           <Input
             type="text"
@@ -125,7 +125,7 @@ export function Login() {
 
           {/* Senha */}
           <div className="label">
-            <label>Senha</label>
+            <label>Senha *</label>
           </div>
           <div className="password-field">
             <Input

@@ -122,7 +122,7 @@ export function SignUp() {
               maxLength={15}
             />
 
-            <div className="label"><label>Senha</label></div>
+            <div className="label"><label>Senha *</label></div>
             <Input
               type="password"
               placeholder="Crie uma senha forte"

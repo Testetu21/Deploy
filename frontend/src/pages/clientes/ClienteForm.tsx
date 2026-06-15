@@ -4,7 +4,7 @@ import { Sidebar } from "../../components/sidebar";
 import "./ClienteForm.css";
 import API_URL from "../../utils/api";
 import "../../utils/toast";
-import { formatCpfCnpj, formatNumberInput } from "../../utils/masks";
+import { formatCpfCnpj, formatNumberInput, formatPhone, isValidBrazilianPhone } from "../../utils/masks";
 
 const API = `${API_URL}/api`;
 
@@ -46,6 +46,12 @@ export default function ClienteForm() {
   async function salvar(e: any) {
     e.preventDefault();
     if (!nome) { alert("Nome é obrigatório"); return; }
+    if (!id && !usuario) { alert("Usuário é obrigatório"); return; }
+    if (!id && !senha) { alert("Senha é obrigatória"); return; }
+    if (telefone && !isValidBrazilianPhone(telefone)) {
+      alert("Informe um telefone válido com DDD. Exemplo: (85) 99999-9999 ou (85) 3333-4444");
+      return;
+    }
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
@@ -109,7 +115,13 @@ export default function ClienteForm() {
 
               <div>
                 <label>Telefone</label>
-                <input value={telefone} onChange={e => setTelefone(e.target.value)} placeholder="(00) 00000-0000" />
+                <input
+                  value={telefone}
+                  onChange={e => setTelefone(formatPhone(e.target.value))}
+                  placeholder="(85) 99999-9999"
+                  inputMode="numeric"
+                  maxLength={15}
+                />
               </div>
 
               <div className="full">
@@ -125,13 +137,13 @@ export default function ClienteForm() {
               </div>
 
               <div>
-                <label>Usuário</label>
-                <input value={usuario} onChange={e => setUsuario(e.target.value)} placeholder="Login do cliente" />
+                <label>{id ? "Usuário" : "Usuário *"}</label>
+                <input value={usuario} onChange={e => setUsuario(e.target.value)} placeholder="Login do cliente" required={!id} />
               </div>
 
               <div>
-                <label>{id ? "Nova senha (opcional)" : "Senha"}</label>
-                <input type="password" value={senha} onChange={e => setSenha(e.target.value)} placeholder="••••••" />
+                <label>{id ? "Nova senha (opcional)" : "Senha *"}</label>
+                <input type="password" value={senha} onChange={e => setSenha(e.target.value)} placeholder="••••••" required={!id} />
               </div>
 
               {id && (

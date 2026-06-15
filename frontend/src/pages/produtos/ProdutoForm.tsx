@@ -121,7 +121,7 @@ export default function ProdutoForm() {
               </div>
 
               <div>
-                <label>Preço de custo</label>
+                <label>Preço de custo *</label>
                 <input
                   type="text"
                   inputMode="decimal"

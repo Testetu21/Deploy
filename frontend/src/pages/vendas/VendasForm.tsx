@@ -318,8 +318,8 @@ export default function VendasForm() {
             <table className="itens-table">
               <thead>
                 <tr>
-                  <th style={{ width: "50%" }}>Produto</th>
-                  <th>Qtd</th>
+                  <th style={{ width: "50%" }}>Produto *</th>
+                  <th>Qtd *</th>
                   <th>Valor unit.</th>
                   <th>Subtotal</th>
                   <th></th>

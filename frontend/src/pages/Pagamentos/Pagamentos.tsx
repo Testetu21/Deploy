@@ -109,38 +109,81 @@ function corParaClasse(cor: string) {
   return map[cor] || "status-neutral";
 }
 
-function ModalDetalhesParcelas({ grupo, onClose }: { grupo: GrupoParcelas; onClose: () => void }) {
+function ModalDetalhesParcelas({ grupo, onClose, onBaixa }: { grupo: GrupoParcelas; onClose: () => void; onBaixa: (id_pagamento: number) => void }) {
+  const badge = getCorPagamento(grupo.pagas, grupo.total, grupo.canceladas);
+
   return (
-    <div className="confirm-overlay open" onClick={onClose}>
-      <div className="confirm-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
-        <h3>Detalhes do parcelamento</h3>
-        <p style={{ fontSize: 13, color: "#667085", marginBottom: 4 }}>{grupo.cliente_nome} — Venda #{grupo.id_venda}</p>
-        <p style={{ fontSize: 13, color: "#667085", marginBottom: 20 }}>
-          {grupo.total}x no Cartão de Crédito · Dia {grupo.dia_pagamento} de cada mês · <strong>{formatCurrency(grupo.valor_total)}</strong> total
-        </p>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
-            <tr style={{ borderBottom: "1px solid #e4e4e7" }}>
-              <th style={{ textAlign: "left", padding: "6px 8px", color: "#667085", fontWeight: 600 }}>Parcela</th>
-              <th style={{ textAlign: "left", padding: "6px 8px", color: "#667085", fontWeight: 600 }}>Vencimento</th>
-              <th style={{ textAlign: "left", padding: "6px 8px", color: "#667085", fontWeight: 600 }}>Valor</th>
-              <th style={{ textAlign: "left", padding: "6px 8px", color: "#667085", fontWeight: 600 }}>Status</th>
-              <th style={{ textAlign: "left", padding: "6px 8px", color: "#667085", fontWeight: 600 }}>Pago em</th>
-            </tr>
-          </thead>
-          <tbody>
-            {grupo.parcelas.map((p, idx) => (
-              <tr key={p.id_pagamento} style={{ borderBottom: "1px solid #f4f4f5" }}>
-                <td style={{ padding: "8px 8px", fontWeight: 500 }}>{idx + 1}/{grupo.total}</td>
-                <td style={{ padding: "8px 8px", color: "#667085" }}>{formatDate(p.data_vencimento)}</td>
-                <td style={{ padding: "8px 8px", fontFamily: "monospace" }}>{formatCurrency(p.valor)}</td>
-                <td style={{ padding: "8px 8px" }}><span className={`status-badge ${getStatusBadge(p.status)}`}>{getStatusText(p.status)}</span></td>
-                <td style={{ padding: "8px 8px", color: "#667085" }}>{p.data_pagamento ? formatDate(p.data_pagamento) : "—"}</td>
+    <div className="confirm-overlay open pagamentos-details-overlay" onClick={onClose}>
+      <div className="pagamento-detalhes-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="pagamento-detalhes-header">
+          <div>
+            <span className="pagamento-detalhes-kicker">Venda #{grupo.id_venda}</span>
+            <h3>Detalhes do parcelamento</h3>
+            <p>{grupo.cliente_nome}</p>
+          </div>
+          <span className={`status-badge ${corParaClasse(badge.cor)}`}>{badge.fracao} · {badge.label}</span>
+        </div>
+
+        <div className="pagamento-detalhes-summary">
+          <div>
+            <span>Total</span>
+            <strong>{formatCurrency(grupo.valor_total)}</strong>
+          </div>
+          <div>
+            <span>Parcelas</span>
+            <strong>{grupo.total}x</strong>
+          </div>
+          <div>
+            <span>Dia de pagamento</span>
+            <strong>Dia {grupo.dia_pagamento}</strong>
+          </div>
+        </div>
+
+        <div className="pagamento-detalhes-descricao">
+          {grupo.descricao_base || "Pagamento no cartão de crédito"}
+        </div>
+
+        <div className="pagamento-detalhes-table-wrap">
+          <table className="pagamento-detalhes-table">
+            <thead>
+              <tr>
+                <th>Parcela</th>
+                <th>Vencimento</th>
+                <th>Valor</th>
+                <th>Status</th>
+                <th>Pago em</th>
+                <th>Ações</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="confirm-actions" style={{ marginTop: 24 }}>
+            </thead>
+            <tbody>
+              {grupo.parcelas.map((p, idx) => (
+                <tr key={p.id_pagamento}>
+                  <td><strong>{idx + 1}/{grupo.total}</strong></td>
+                  <td>{formatDate(p.data_vencimento)}</td>
+                  <td className="dp-cell-mono">{formatCurrency(p.valor)}</td>
+                  <td><span className={`status-badge ${getStatusBadge(p.status)}`}>{getStatusText(p.status)}</span></td>
+                  <td>{p.data_pagamento ? formatDate(p.data_pagamento) : "—"}</td>
+                  <td>
+                    {p.status === "pendente" ? (
+                      <button
+                        type="button"
+                        className="pagamento-detalhes-baixa-btn"
+                        title="Dar baixa nesta parcela"
+                        onClick={() => onBaixa(p.id_pagamento)}
+                      >
+                        <IconCheck /> Dar baixa
+                      </button>
+                    ) : (
+                      <span className="pagamento-detalhes-sem-acao">—</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="confirm-actions pagamento-detalhes-actions">
           <button className="btn btn-ghost" onClick={onClose}>Fechar</button>
         </div>
       </div>
@@ -506,7 +549,7 @@ export default function Pagamentos() {
         </div>
       </div>
 
-      {grupoDetalhes && <ModalDetalhesParcelas grupo={grupoDetalhes} onClose={() => setGrupoDetalhes(null)} />}
+      {grupoDetalhes && <ModalDetalhesParcelas grupo={grupoDetalhes} onClose={() => setGrupoDetalhes(null)} onBaixa={abrirModalBaixa} />}
 
       {/* ── MODAL DAR BAIXA ── */}
       {baixaId !== null && (() => {
@@ -601,7 +644,7 @@ export default function Pagamentos() {
 
                       {!pagamentoMisto && (
                         <div>
-                          <label style={{ fontSize: 12, fontWeight: 600, color: "#667085", display: "block", marginBottom: 6 }}>Forma de pagamento</label>
+                          <label style={{ fontSize: 12, fontWeight: 600, color: "#667085", display: "block", marginBottom: 6 }}>Forma de pagamento *</label>
                           <select value={baixaForma} onChange={(e) => { setBaixaForma(e.target.value); setBaixaParcelas(1); setBaixaDia(1); setPagamentoMisto(false); }} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #e4e4e7", fontSize: 14 }}>
                             <option value="dinheiro">Dinheiro</option>
                             <option value="pix">PIX</option>
@@ -618,7 +661,7 @@ export default function Pagamentos() {
                             <p style={{ fontSize: 13, color: "#ef4444", padding: "9px 12px", background: "#fef2f2", borderRadius: 8 }}>⚠️ Valor mínimo para parcelamento é R$ 200,00.</p>
                           ) : (
                             <div>
-                              <label style={{ fontSize: 12, fontWeight: 600, color: "#667085", display: "block", marginBottom: 6 }}>Número de parcelas</label>
+                              <label style={{ fontSize: 12, fontWeight: 600, color: "#667085", display: "block", marginBottom: 6 }}>Número de parcelas *</label>
                               <select value={baixaParcelas} onChange={(e) => setBaixaParcelas(Number(e.target.value))} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #e4e4e7", fontSize: 14 }}>
                                 {Array.from({ length: maxParcelas }, (_, i) => i + 1).map((n) => (
                                   <option key={n} value={n}>{n}x de {formatCurrency(valorComDesconto / n)}</option>
@@ -627,7 +670,7 @@ export default function Pagamentos() {
                             </div>
                           )}
                           <div>
-                            <label style={{ fontSize: 12, fontWeight: 600, color: "#667085", display: "block", marginBottom: 6 }}>Dia do mês para pagamento</label>
+                            <label style={{ fontSize: 12, fontWeight: 600, color: "#667085", display: "block", marginBottom: 6 }}>Dia do mês para pagamento *</label>
                             <input type="number" min={1} max={31} value={baixaDia} onChange={(e) => setBaixaDia(Number(e.target.value))} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #e4e4e7", fontSize: 14 }} />
                             <p style={{ fontSize: 11, color: "#667085", marginTop: 4 }}>Baixa automática todo dia {baixaDia}.{baixaDia > 28 && " Meses curtos usam o último dia disponível."}</p>
                           </div>

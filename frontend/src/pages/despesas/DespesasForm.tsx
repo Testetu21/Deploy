@@ -219,7 +219,7 @@ if (!res.ok) {
 
             <div className="df-grid">
               <div className="df-field df-full">
-                <label htmlFor="descricao">Descrição</label>
+                <label htmlFor="descricao">Descrição *</label>
                 <input
                   id="descricao"
                   name="descricao"
@@ -231,7 +231,7 @@ if (!res.ok) {
               </div>
 
               <div className="df-field">
-                <label htmlFor="valor">Valor</label>
+                <label htmlFor="valor">Valor *</label>
                 <input
                   id="valor"
                   type="text"
