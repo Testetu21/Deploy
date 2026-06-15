@@ -27,7 +27,7 @@ router.get('/:tipo', auth, pAdmin, async (req, res) => {
                   COALESCE(SUM(valor_total), 0) AS receita
            FROM venda
            WHERE DATE(data_venda) BETWEEN ? AND ?
-           GROUP BY DATE(data_venda)
+           GROUP BY DATE(data_venda), DATE_FORMAT(DATE(data_venda), '%d/%m/%Y')
            ORDER BY DATE(data_venda) DESC`,
           [dataInicio, dataFim]
         );
