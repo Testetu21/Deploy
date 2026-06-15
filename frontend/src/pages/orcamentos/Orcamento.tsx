@@ -374,11 +374,6 @@ export default function Orcamentos() {
                           <button className="dp-btn-icon dp-del" onClick={() => abrirConfirmacaoExclusao(o)}>
                             <IconTrash />
                           </button>
-                          {!isTecnico && (
-                            <button className="dp-btn-icon dp-del" onClick={() => abrirConfirmacaoExclusao(o)}>
-                              <IconTrash />
-                            </button>
-                          )}
                         </div>
                       </td>
                     </tr>
