@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Sidebar } from "../../components/sidebar";
 import "./FornecedorForm.css";
 import API_URL from "../../utils/api";
+import { formatPhone } from "../../utils/masks";
 
 const API = `${API_URL}/api`;
 
@@ -84,7 +85,13 @@ export default function FornecedorForm() {
 
               <div>
                 <label>Telefone</label>
-                <input value={telefone} onChange={e => setTelefone(e.target.value)} placeholder="(00) 0000-0000" />
+                <input
+                  value={telefone}
+                  onChange={e => setTelefone(formatPhone(e.target.value))}
+                  placeholder="(85) 99999-9999"
+                  inputMode="numeric"
+                  maxLength={15}
+                />
               </div>
 
               <div>

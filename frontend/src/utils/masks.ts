@@ -10,20 +10,11 @@ export function formatPhone(value: string) {
 export function isValidBrazilianPhone(value: string) {
   const digits = value.replace(/\D/g, "");
 
+  // Aceita fixo (10 dígitos: DDD + 8) ou celular (11 dígitos: DDD + 9)
   if (digits.length !== 10 && digits.length !== 11) return false;
-  if (/^(\d)\1+$/.test(digits)) return false;
 
   const ddd = Number(digits.slice(0, 2));
-  const number = digits.slice(2);
-
   if (ddd < 11 || ddd > 99) return false;
-  if (/^(\d)\1+$/.test(number)) return false;
-
-  // Celular brasileiro deve ter 11 dígitos e começar com 9 depois do DDD.
-  if (digits.length === 11 && digits[2] !== "9") return false;
-
-  // Telefone fixo com 10 dígitos não deve começar com 0 ou 1 depois do DDD.
-  if (digits.length === 10 && !/[2-9]/.test(digits[2])) return false;
 
   return true;
 }
