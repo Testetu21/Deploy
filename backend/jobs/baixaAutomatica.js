@@ -1,4 +1,4 @@
-const { q } = require('../helpers/db');
+const { q } = require('../helpers/Db');
 
 function gerarNumeroRecibo(id) {
   const d = new Date();

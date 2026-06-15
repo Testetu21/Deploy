@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const auth = require('../middleware/auth');
+const auth = require('../middleware/Auth');
 
 // Middleware: vendedor (3), gerente (2) ou admin (1)
 function apenasVendedor(req, res, next) {
